@@ -1,0 +1,382 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Table des utilisateurs (restaurants/admins)
+model users {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  password       String
+  name           String
+  phone          String?
+  address        String?
+  city           String?
+  postalCode     String?
+  restaurantName String?
+  description    String?   @db.Text
+  logo           String?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deliveryRadius String?
+  hours          String?
+  isOpen         Boolean   @default(true)
+  minimumOrder   Decimal?  @db.Decimal(10, 2)
+  role           Role      @default(RESTAURANT)
+  notifications  Json?
+  security       Json?
+  customMessage  String?
+
+  // Relations
+    cuisines       cuisine[] @relation("UserCuisines") // ← Ajouté
+
+  orders         orders[]
+  dishes         dishes[]
+  promotions     promotions[]
+  reviews        reviews[]
+  reservations   reservations[]
+  payments       payments[]
+  legalDocuments legaldocuments[]
+  campagnes      campagnes[]
+  customers      customers[]
+  sessions       sessions[]
+  userRoles      user_roles[]
+}
+model cuisine {
+  id    String   @id @default(cuid())
+  name  String   @unique
+  users users[]  @relation("UserCuisines")
+}
+
+
+// Table des clients
+model customers {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String?  // Ajout du mot de passe pour les clients
+  name      String
+  phone     String?
+  address   String?
+  city      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String?
+
+  user users? @relation(fields: [userId], references: [id])
+
+  // Relations
+  orders       orders[]
+  reviews      reviews[]
+  reservations reservations[]
+  sessions     sessions[]
+}
+
+// Table des sessions pour iron-session
+model sessions {
+  id        String   @id @default(cuid())
+  sessionId String   @unique
+  userId    String?
+  customerId String?
+  data      Json
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user     users?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customer customers? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([expiresAt])
+}
+
+// Table des rôles
+model roles {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  permissions Json?    // Stockage des permissions en JSON
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userRoles user_roles[]
+}
+
+// Table de liaison utilisateurs-rôles
+model user_roles {
+  id     String @id @default(cuid())
+  userId String
+  roleId String
+
+  // Relations
+  user users @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role roles @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+}
+
+// Table des permissions
+model permissions {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  resource    String   // Ex: "orders", "dishes", "users"
+  action      String   // Ex: "create", "read", "update", "delete"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([resource, action])
+}
+
+model categories {
+  id          String   @id @default(cuid())
+  name        String  @unique 
+  description String?
+  image       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  dishes dishes[]
+}
+
+model dishes {
+  id              String     @id @default(cuid())
+  name            String
+  description     String?    @db.Text
+  price           Float
+  image           String?
+  isAvailable     Boolean    @default(true)
+  preparationTime Int?
+  ingredients     Json?
+  allergens       String?
+  calories        Int?
+  isVegetarian    Boolean    @default(false)
+  isVegan         Boolean    @default(false)
+  isGlutenFree    Boolean    @default(false)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  categoryId      String
+  userId          String
+
+  // Relations
+  categories  categories    @relation(fields: [categoryId], references: [id])
+  users       users         @relation(fields: [userId], references: [id])
+  order_items order_items[]
+}
+
+model orders {
+  id              String        @id @default(cuid())
+  orderNumber     String        @unique
+  status          OrderStatus   @default(PENDING)
+  totalAmount     Decimal       @db.Decimal(10, 2)
+  deliveryFee     Decimal?      @db.Decimal(10, 2)
+  tax             Decimal?      @db.Decimal(10, 2)
+  discount        Decimal?      @db.Decimal(10, 2)
+  deliveryAddress String?
+  deliveryTime    DateTime?
+  notes           String?       @db.Text
+  paymentMethod   PaymentMethod?
+  paymentStatus   PaymentStatus @default(PENDING)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  customerId      String
+  userId          String
+
+  // Relations
+  customers   customers     @relation(fields: [customerId], references: [id])
+  users       users         @relation(fields: [userId], references: [id])
+  order_items order_items[]
+  payments    payments?
+}
+
+model order_items {
+  id       String  @id @default(cuid())
+  quantity Int
+  price    Decimal @db.Decimal(10, 2)
+  notes    String?
+  orderId  String
+  dishId   String
+
+  // Relations
+  orders orders @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  dishes dishes @relation(fields: [dishId], references: [id])
+}
+
+model reviews {
+  id         String   @id @default(cuid())
+  rating     Int
+  comment    String?  @db.Text
+  response   String?  @db.Text
+  isVisible  Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  customerId String
+  userId     String
+
+  // Relations
+  customers customers @relation(fields: [customerId], references: [id])
+  users     users     @relation(fields: [userId], references: [id])
+}
+
+model promotions {
+  id          String        @id @default(cuid())
+  name        String
+  description String?       @db.Text
+  type        PromotionType
+  value       Decimal       @db.Decimal(10, 2)
+  code        String?       @unique
+  minAmount   Decimal?      @db.Decimal(10, 2)
+  maxDiscount Decimal?      @db.Decimal(10, 2)
+  usageLimit  Int?
+  usageCount  Int           @default(0)
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  userId      String
+
+  // Relations
+  users users @relation(fields: [userId], references: [id])
+}
+
+model legaldocuments {
+  id              String    @id @default(cuid())
+  name            String
+  type            String
+  status          String
+  file            String?
+  rejectionReason String?
+  uploadDate      DateTime?
+  expiryDate      DateTime?
+  required        Boolean   @default(false)
+  userId          String
+
+  users users @relation(fields: [userId], references: [id])
+
+  @@unique([userId, name])
+}
+
+model campagnes {
+  id             String   @id @default(uuid())
+  name           String
+  type           String
+  status         String
+  budget         Float
+  spent          Float
+  impressions    Int
+  clicks         Int
+  conversions    Int
+  startDate      DateTime
+  endDate        DateTime
+  targetAudience String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  userId         String
+
+  users users @relation(fields: [userId], references: [id])
+}
+
+model reservations {
+  id              String            @id @default(cuid())
+  date            DateTime
+  time            String
+  partySize       Int
+  status          ReservationStatus @default(PENDING)
+  notes           String?           @db.Text
+  specialRequests String?           @db.Text
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  customerId      String
+  userId          String
+
+  // Relations
+  customers customers @relation(fields: [customerId], references: [id])
+  users     users     @relation(fields: [userId], references: [id])
+}
+
+model payments {
+  id              String        @id @default(cuid())
+  amount          Decimal       @db.Decimal(10, 2)
+  method          PaymentMethod
+  status          PaymentStatus @default(PENDING)
+  transactionId   String?       @unique
+  gatewayResponse String?       @db.Text
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  orderId         String        @unique
+  userId          String
+
+  // Relations
+  orders orders @relation(fields: [orderId], references: [id])
+  users  users  @relation(fields: [userId], references: [id])
+}
+
+model menu_settings {
+  id               String   @id @default(cuid())
+  title            String
+  subtitle         String?
+  description      String?
+  showPrices       Boolean  @default(true)
+  showDescriptions Boolean  @default(true)
+  showImages       Boolean  @default(false)
+  colorTheme       String   @default("droovo")
+  layout           String   @default("classic")
+  language         String   @default("fr")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+// Enums
+enum Role {
+  ADMIN
+  RESTAURANT
+  CUSTOMER
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  PAYPAL
+  STRIPE
+  BANK_TRANSFER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PromotionType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  FREE_DELIVERY
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
