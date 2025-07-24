@@ -17,12 +17,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Filtrer par cuisine spécifique
-    if (cuisine) {
+    if (cuisine && cuisine !== "Tous") {
       filters.cuisines = {
         some: {
           name: {
-            contains: String(cuisine), // Recherche insensible à la casse pour la cuisine
-            mode: "insensitive", // Ignorer la casse
+            contains: String(cuisine),
+            // mode: "insensitive", // supprimé car non supporté
           },
         },
       };
@@ -42,9 +42,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Filtrer par recherche de texte (nom, cuisine, description)
     if (search) {
       filters.OR = [
-        { restaurantName: { contains: String(search), mode: "insensitive" } },
-        { description: { contains: String(search), mode: "insensitive" } },
-        { cuisines: { some: { name: { contains: String(search), mode: "insensitive" } } } },
+        { restaurantName: { contains: String(search) /* , mode: "insensitive" supprimé */ } },
+        { description: { contains: String(search) /* , mode: "insensitive" supprimé */ } },
+        { cuisines: { some: { name: { contains: String(search) /* , mode: "insensitive" supprimé */ } } } },
       ];
     }
 

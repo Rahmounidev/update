@@ -1,31 +1,74 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Search, MapPin, Star, Clock, SlidersHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 import Link from "next/link"
 import Image from "next/image"
 import Footer from "@/components/footer"
 import ModernHeader from "@/components/header/modern-header"
 
-// Fetching restaurants data from backend (replace with actual API call in production)
-const cuisineTypes = [
-  "Tous", "Italien", "Américain", "Japonais", "Marocain", "Français", "Mexicain", "Chinois", "Healthy",
-];
-const locations = ["Toutes zones", "Centre-ville, Casablanca", "Ain Diab", "Maarif", "Bourgogne"];
-const priceRanges = ["Tous prix", "€", "€€", "€€€"];
+type Restaurant = {
+  id: string
+  restaurantName: string
+  name: string
+  description: string
+  logo: string | null
+  city: string
+  address: string
+  phone: string
+  hours: string
+  isOpen: boolean
+  minimumOrder: number
+  deliveryRadius: number
+  customMessage: string | null
+  cuisines: { name: string }[]
+  promotions: { name: string }[]
+  reviews: { rating: number }[]
+  dishes: {
+    id: string
+    name: string
+    price: number
+    image: string | null
+  }[]
+}
 
 export default function RestaurantsPage() {
+  const searchParams = useSearchParams()!
+  // Récupérer cuisine dans URL, sinon "Tous"
+  const cuisineFromUrl = searchParams.get("cuisine") || "Tous"
+
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedCuisine, setSelectedCuisine] = useState("Tous")
+  const [selectedCuisine, setSelectedCuisine] = useState(cuisineFromUrl)
+  const [cuisines, setCuisines] = useState<string[]>(["Tous"])
   const [selectedLocation, setSelectedLocation] = useState("Toutes zones")
   const [selectedPriceRange, setSelectedPriceRange] = useState("Tous prix")
   const [sortBy, setSortBy] = useState("rating")
@@ -33,12 +76,40 @@ export default function RestaurantsPage() {
   const [showPromotionsOnly, setShowPromotionsOnly] = useState(false)
   const [maxDistance, setMaxDistance] = useState([5])
   const [minRating, setMinRating] = useState([0])
-  const [restaurants, setRestaurants] = useState<any[]>([])
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([])
+
+  useEffect(() => {
+    async function fetchCuisines() {
+      try {
+        const res = await fetch("/api/cuisine")
+        const json = await res.json()
+        if (json.success && json.data) {
+          setCuisines(["Tous", ...json.data.map((c: { name: string }) => c.name)])
+        }
+      } catch (error) {
+        console.error("Erreur fetch cuisines:", error)
+      }
+    }
+    fetchCuisines()
+  }, [])
 
   useEffect(() => {
     async function fetchRestaurants() {
       try {
-        const response = await fetch(`/api/restaurants?search=${searchTerm}&cuisine=${selectedCuisine}&location=${selectedLocation}&priceRange=${selectedPriceRange}&minRating=${minRating[0]}&maxDistance=${maxDistance[0]}&isOpen=${showOpenOnly}&promotionsOnly=${showPromotionsOnly}`)
+        const params = new URLSearchParams()
+
+        if (searchTerm.trim()) params.append("search", searchTerm.trim())
+        // N'envoyer cuisine que si différente de "Tous"
+        if (selectedCuisine && selectedCuisine !== "Tous") {
+          params.append("cuisine", selectedCuisine)
+        }
+
+        if (showOpenOnly) params.append("isOpen", "true")
+        if (minRating[0] > 0) params.append("minRating", minRating[0].toString())
+        if (showPromotionsOnly) params.append("promotionsOnly", "true")
+
+        console.log("Fetch restaurants with params:", params.toString())
+        const response = await fetch(`/api/restaurants?${params.toString()}`)
         const data = await response.json()
         setRestaurants(data.restaurants || [])
       } catch (error) {
@@ -46,7 +117,21 @@ export default function RestaurantsPage() {
       }
     }
     fetchRestaurants()
-  }, [searchTerm, selectedCuisine, selectedLocation, selectedPriceRange, minRating, maxDistance, showOpenOnly, showPromotionsOnly])
+  }, [
+    searchTerm,
+    selectedCuisine,
+    showOpenOnly,
+    showPromotionsOnly,
+    minRating,
+  ])
+
+  // Si l’url change et que le param cuisine change, mettre à jour selectedCuisine
+  useEffect(() => {
+    if (cuisineFromUrl !== selectedCuisine) {
+      setSelectedCuisine(cuisineFromUrl)
+    }
+  }, [cuisineFromUrl])
+
 
   const resetFilters = () => {
     setSearchTerm("")
@@ -60,43 +145,53 @@ export default function RestaurantsPage() {
     setMinRating([0])
   }
 
+  // Filtrage frontend additionnel (ex : distance ou autres non gérés backend)
   const filteredRestaurants = restaurants
     .filter((restaurant) => {
       const matchesSearch =
-        restaurant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        restaurant.cuisine.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        restaurant.restaurantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         restaurant.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        restaurant.tags?.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+        restaurant.cuisines.some((c) =>
+          c.name.toLowerCase().includes(searchTerm.toLowerCase())
+        )
 
-      const matchesCuisine = selectedCuisine === "Tous" || restaurant.cuisine === selectedCuisine
-      const matchesLocation = selectedLocation === "Toutes zones" || restaurant.location === selectedLocation
-      const matchesPriceRange = selectedPriceRange === "Tous prix" || restaurant.priceRange === selectedPriceRange
+      const matchesCuisine =
+        selectedCuisine === "Tous" ||
+        restaurant.cuisines.some((c) => c.name === selectedCuisine)
+
+      // Ici, location, priceRange, maxDistance non gérés dans ton backend, tu peux retirer ou gérer côté frontend
+
       const matchesOpenStatus = !showOpenOnly || restaurant.isOpen
-      const matchesPromotions = !showPromotionsOnly || restaurant.promotions.length > 0
-      const matchesDistance = restaurant.distance <= maxDistance[0]
-      const matchesRating = restaurant.rating >= minRating[0]
+      const matchesPromotions =
+        !showPromotionsOnly || restaurant.promotions.length > 0
+
+      const avgRating =
+        restaurant.reviews.length > 0
+          ? restaurant.reviews.reduce((acc, r) => acc + r.rating, 0) /
+            restaurant.reviews.length
+          : 0
+      const matchesRating = avgRating >= minRating[0]
 
       return (
         matchesSearch &&
         matchesCuisine &&
-        matchesLocation &&
-        matchesPriceRange &&
         matchesOpenStatus &&
         matchesPromotions &&
-        matchesDistance &&
         matchesRating
       )
     })
     .sort((a, b) => {
       switch (sortBy) {
         case "rating":
-          return b.rating - a.rating
-        case "distance":
-          return a.distance - b.distance
-        case "deliveryTime":
-          return Number.parseInt(a.deliveryTime) - Number.parseInt(b.deliveryTime)
-        case "deliveryFee":
-          return a.deliveryFee - b.deliveryFee
+          const avgA =
+            a.reviews.length > 0
+              ? a.reviews.reduce((acc, r) => acc + r.rating, 0) / a.reviews.length
+              : 0
+          const avgB =
+            b.reviews.length > 0
+              ? b.reviews.reduce((acc, r) => acc + r.rating, 0) / b.reviews.length
+              : 0
+          return avgB - avgA
         default:
           return 0
       }
@@ -105,13 +200,19 @@ export default function RestaurantsPage() {
   return (
     <div className="min-h-screen bg-gray-50 pt-20">
       {/* Header */}
-      <ModernHeader cartItemsCount={0} userLocation="Casablanca, Maroc" onSearch={(query) => setSearchTerm(query)} />
+      <ModernHeader
+        cartItemsCount={0}
+        userLocation="Casablanca, Maroc"
+        onSearch={(query) => setSearchTerm(query)}
+      />
 
       {/* Page Header */}
       <section className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">Tous les restaurants</h1>
-          <p className="text-gray-600 mb-6">Découvrez {restaurants.length} restaurants près de chez vous</p>
+          <p className="text-gray-600 mb-6">
+            Découvrez {filteredRestaurants.length} restaurants près de chez vous
+          </p>
 
           {/* Search Bar */}
           <div className="relative max-w-2xl">
@@ -149,63 +250,40 @@ export default function RestaurantsPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {cuisineTypes.map((cuisine) => (
-                        <SelectItem key={cuisine} value={cuisine}>
-                          {cuisine}
+                      {cuisines.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Location Filter */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Zone</Label>
-                  <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {locations.map((location) => (
-                        <SelectItem key={location} value={location}>
-                          {location}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                {/* Checkboxes */}
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="openOnly"
+                      checked={showOpenOnly}
+                      onCheckedChange={(checked) => setShowOpenOnly(checked === true)}
+                    />
+                    <Label htmlFor="openOnly" className="text-sm">
+                      Restaurants ouverts uniquement
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="promotionsOnly"
+                      checked={showPromotionsOnly}
+                      onCheckedChange={(checked) => setShowPromotionsOnly(checked === true)}
+                    />
+                    <Label htmlFor="promotionsOnly" className="text-sm">
+                      Avec promotions uniquement
+                    </Label>
+                  </div>
                 </div>
 
-                {/* Price Range Filter */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Gamme de prix</Label>
-                  <Select value={selectedPriceRange} onValueChange={setSelectedPriceRange}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {priceRanges.map((range) => (
-                        <SelectItem key={range} value={range}>
-                          {range}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Distance Filter */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Distance maximale: {maxDistance[0]} km</Label>
-                  <Slider
-                    value={maxDistance}
-                    onValueChange={setMaxDistance}
-                    max={10}
-                    min={1}
-                    step={0.5}
-                    className="w-full"
-                  />
-                </div>
-
-                {/* Rating Filter */}
+                {/* Min Rating Filter */}
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Note minimale: {minRating[0]} étoiles</Label>
                   <Slider
@@ -216,26 +294,6 @@ export default function RestaurantsPage() {
                     step={0.5}
                     className="w-full"
                   />
-                </div>
-
-                {/* Checkboxes */}
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="openOnly" checked={showOpenOnly} onCheckedChange={setShowOpenOnly} />
-                    <Label htmlFor="openOnly" className="text-sm">
-                      Restaurants ouverts uniquement
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="promotionsOnly"
-                      checked={showPromotionsOnly}
-                      onCheckedChange={setShowPromotionsOnly}
-                    />
-                    <Label htmlFor="promotionsOnly" className="text-sm">
-                      Avec promotions uniquement
-                    </Label>
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -258,7 +316,7 @@ export default function RestaurantsPage() {
                     <SheetDescription>Affinez votre recherche de restaurants</SheetDescription>
                   </SheetHeader>
                   <div className="mt-6 space-y-6">
-                    {/* Same filters as desktop but in mobile sheet */}
+                    {/* Cuisine Filter Mobile */}
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Type de cuisine</Label>
                       <Select value={selectedCuisine} onValueChange={setSelectedCuisine}>
@@ -266,50 +324,23 @@ export default function RestaurantsPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {cuisineTypes.map((cuisine) => (
-                            <SelectItem key={cuisine} value={cuisine}>
-                              {cuisine}
+                          {cuisines.map((c) => (
+                            <SelectItem key={c} value={c}>
+                              {c}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Zone</Label>
-                      <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {locations.map((location) => (
-                            <SelectItem key={location} value={location}>
-                              {location}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Gamme de prix</Label>
-                      <Select value={selectedPriceRange} onValueChange={setSelectedPriceRange}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {priceRanges.map((range) => (
-                            <SelectItem key={range} value={range}>
-                              {range}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
+                    {/* Checkboxes Mobile */}
                     <div className="space-y-3">
                       <div className="flex items-center space-x-2">
-                        <Checkbox id="openOnlyMobile" checked={showOpenOnly} onCheckedChange={setShowOpenOnly} />
+                        <Checkbox
+                          id="openOnlyMobile"
+                          checked={showOpenOnly}
+                          onCheckedChange={(checked) => setShowOpenOnly(checked === true)}
+                        />
                         <Label htmlFor="openOnlyMobile" className="text-sm">
                           Restaurants ouverts uniquement
                         </Label>
@@ -318,12 +349,25 @@ export default function RestaurantsPage() {
                         <Checkbox
                           id="promotionsOnlyMobile"
                           checked={showPromotionsOnly}
-                          onCheckedChange={setShowPromotionsOnly}
+                          onCheckedChange={(checked) => setShowPromotionsOnly(checked === true)}
                         />
                         <Label htmlFor="promotionsOnlyMobile" className="text-sm">
                           Avec promotions uniquement
                         </Label>
                       </div>
+                    </div>
+
+                    {/* Min Rating Filter Mobile */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Note minimale: {minRating[0]} étoiles</Label>
+                      <Slider
+                        value={minRating}
+                        onValueChange={setMinRating}
+                        max={5}
+                        min={0}
+                        step={0.5}
+                        className="w-full"
+                      />
                     </div>
 
                     <Button onClick={resetFilters} variant="outline" className="w-full">
@@ -339,9 +383,7 @@ export default function RestaurantsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="rating">Note</SelectItem>
-                  <SelectItem value="distance">Distance</SelectItem>
-                  <SelectItem value="deliveryTime">Temps de livraison</SelectItem>
-                  <SelectItem value="deliveryFee">Frais de livraison</SelectItem>
+                  {/* Tu peux ajouter d'autres critères si tu les gères */}
                 </SelectContent>
               </Select>
             </div>
@@ -353,8 +395,12 @@ export default function RestaurantsPage() {
                   <div className="text-gray-400 mb-4">
                     <Search className="h-16 w-16 mx-auto" />
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun restaurant trouvé</h3>
-                  <p className="text-gray-600 mb-6">Essayez de modifier vos critères de recherche</p>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Aucun restaurant trouvé
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    Essayez de modifier vos critères de recherche
+                  </p>
                   <Button onClick={resetFilters}>Réinitialiser les filtres</Button>
                 </CardContent>
               </Card>
@@ -365,22 +411,23 @@ export default function RestaurantsPage() {
                     <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
                       <div className="relative">
                         <Image
-                          src={restaurant.image || "/placeholder.svg"}
-                          alt={restaurant.name}
+                          src={restaurant.logo || "/placeholder.svg"}
+                          alt={restaurant.restaurantName}
                           width={300}
                           height={200}
                           className="w-full h-48 object-cover rounded-t-lg"
                         />
-                        {!restaurant.isOpen && (
-                          <div className="absolute inset-0 bg-black bg-opacity-50 rounded-t-lg flex items-center justify-center">
-                            <span className="text-white font-semibold">Fermé</span>
-                          </div>
-                        )}
-                        <Badge variant={restaurant.isOpen ? "default" : "secondary"} className="absolute top-2 right-2">
+                        <Badge
+                          variant={restaurant.isOpen ? "default" : "secondary"}
+                          className="absolute top-2 right-2"
+                        >
                           {restaurant.isOpen ? "Ouvert" : "Fermé"}
                         </Badge>
                         {restaurant.promotions.length > 0 && (
-                          <Badge variant="destructive" className="absolute top-2 left-2 bg-red-500">
+                          <Badge
+                            variant="destructive"
+                            className="absolute top-2 left-2 bg-red-500"
+                          >
                             Promo
                           </Badge>
                         )}
@@ -388,11 +435,22 @@ export default function RestaurantsPage() {
 
                       <CardHeader className="pb-2">
                         <div className="flex justify-between items-start">
-                          <CardTitle className="text-lg">{restaurant.name}</CardTitle>
+                          <CardTitle className="text-lg">{restaurant.restaurantName}</CardTitle>
                           <div className="flex items-center space-x-1">
                             <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                            <span className="text-sm font-medium">{restaurant.rating}</span>
-                            <span className="text-xs text-gray-500">({restaurant.reviewCount})</span>
+                            <span className="text-sm font-medium">
+                              {restaurant.reviews.length > 0
+                                ? (
+                                    restaurant.reviews.reduce(
+                                      (acc, r) => acc + r.rating,
+                                      0
+                                    ) / restaurant.reviews.length
+                                  ).toFixed(1)
+                                : "N/A"}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              ({restaurant.reviews.length})
+                            </span>
                           </div>
                         </div>
                         <CardDescription>{restaurant.description}</CardDescription>
@@ -400,48 +458,14 @@ export default function RestaurantsPage() {
 
                       <CardContent className="pt-0 flex-1 flex flex-col justify-between">
                         <div className="space-y-3">
-                          {/* Promotions */}
-                          {restaurant.promotions.length > 0 && (
-                            <div className="space-y-1">
-                              {restaurant.promotions.map((promo, index) => (
-                                <p key={index} className="text-xs text-red-600 font-medium">
-                                  🎉 {promo}
-                                </p>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Tags */}
-                          <div className="flex flex-wrap gap-1">
-                            {(restaurant.tags || []).slice(0, 3).map((tag) => (
-                              <Badge key={tag} variant="outline" className="text-xs">
-                                {tag}
+                          {/* Dishes */}
+                          <div className="flex flex-wrap gap-2">
+                            {restaurant.dishes.map((dish) => (
+                              <Badge key={dish.id} variant="outline" className="text-xs">
+                                {dish.name} - {dish.price.toFixed(2)}€
                               </Badge>
                             ))}
                           </div>
-
-                          {/* Info Row 1 */}
-                          <div className="flex items-center justify-between text-sm text-gray-500">
-                            <div className="flex items-center space-x-1">
-                              <MapPin className="h-4 w-4" />
-                              <span>
-                                {restaurant.location} • {restaurant.distance}km
-                              </span>
-                            </div>
-                            <span className="font-medium">{restaurant.priceRange}</span>
-                          </div>
-
-                          {/* Info Row 2 */}
-                          <div className="flex items-center justify-between text-sm text-gray-500">
-                            <div className="flex items-center space-x-1">
-                              <Clock className="h-4 w-4" />
-                              <span>{restaurant.deliveryTime}</span>
-                            </div>
-                            <span>Livraison: {restaurant.deliveryFee.toFixed(2)}€</span>
-                          </div>
-
-                          {/* Min Order */}
-                          <div className="text-xs text-gray-500">Commande minimum: {restaurant.minOrder}€</div>
                         </div>
                       </CardContent>
                     </Card>

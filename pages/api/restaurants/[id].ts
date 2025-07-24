@@ -47,11 +47,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ message: "Restaurant non trouvé" })
     }
 
-    const ratings = restaurant.reviews.map((r) => r.rating)
-    const averageRating = ratings.length > 0 ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length : 0
+    const ratings = restaurant.reviews.map((r: { rating: any }) => r.rating)
+    const averageRating = ratings.length > 0 ? ratings.reduce((sum: any, r: any) => sum + r, 0) / ratings.length : 0
 
     const categoriesMap = new Map()
-    restaurant.dishes.forEach((dish) => {
+    restaurant.dishes.forEach((dish: { categories: { name: string; id: any }; id: any; name: any; description: any; price: any; image: any; preparationTime: any; ingredients: any; allergens: any; calories: any; isVegetarian: any; isVegan: any; isGlutenFree: any }) => {
       const categoryName = dish.categories?.name || "Autres"
       if (!categoriesMap.has(categoryName)) {
         categoriesMap.set(categoryName, {
@@ -85,7 +85,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         name: restaurant.name,
         description: restaurant.description,
         logo: restaurant.logo,
-        cuisines: restaurant.cuisines.map((c) => c.name),
+        cuisines: restaurant.cuisines.map((c: { name: any }) => c.name),
         city: restaurant.city,
         address: restaurant.address,
         phone: restaurant.phone,
@@ -97,7 +97,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         averageRating: Math.round(averageRating * 10) / 10,
         reviewCount: ratings.length,
         menu,
-        reviews: restaurant.reviews.map((review) => ({
+        reviews: restaurant.reviews.map((review: { id: any; rating: any; comment: any; response: any; createdAt: any; customers: { name: any } }) => ({
           id: review.id,
           rating: review.rating,
           comment: review.comment,
