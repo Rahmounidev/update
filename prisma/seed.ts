@@ -1,9 +1,38 @@
-import { PrismaClient } from "@prisma/client"
+import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Seeding database...")
+  console.log("🌱 Seeding database...");
+
+  // Créer des cuisines
+  const cuisines = await Promise.all([
+    prisma.cuisine.create({
+      data: {
+        name: "Marocaine",
+      },
+    }),
+    prisma.cuisine.create({
+      data: {
+        name: "Italienne",
+      },
+    }),
+    prisma.cuisine.create({
+      data: {
+        name: "Japonaise",
+      },
+    }),
+    prisma.cuisine.create({
+      data: {
+        name: "Française",
+      },
+    }),
+    prisma.cuisine.create({
+      data: {
+        name: "Libanaise",
+      },
+    }),
+  ]);
 
   // Créer des catégories
   const categories = await Promise.all([
@@ -35,9 +64,9 @@ async function main() {
         image: "/placeholder.svg?height=200&width=300",
       },
     }),
-  ])
+  ]);
 
-  // Créer des restaurants
+  // Créer des restaurants et les associer aux cuisines
   const restaurants = await Promise.all([
     prisma.users.create({
       data: {
@@ -51,7 +80,6 @@ async function main() {
         description:
           "Restaurant traditionnel marocain proposant des tajines authentiques et des couscous savoureux dans une ambiance chaleureuse.",
         logo: "/placeholder.svg?height=100&width=100",
-        cuisine: "Marocaine",
         role: "RESTAURANT",
         isActive: true,
         isOpen: true,
@@ -59,6 +87,9 @@ async function main() {
         deliveryRadius: "10km",
         minimumOrder: 50.0,
         customMessage: "Bienvenue au Tajine Royal ! Découvrez nos spécialités marocaines.",
+        cuisines: {
+          connect: { id: cuisines[0].id }, // Associer avec "Marocaine"
+        },
       },
     }),
     prisma.users.create({
@@ -72,7 +103,6 @@ async function main() {
         restaurantName: "Pizza Corner",
         description: "Pizzeria moderne proposant des pizzas artisanales avec des ingrédients frais et de qualité.",
         logo: "/placeholder.svg?height=100&width=100",
-        cuisine: "Italienne",
         role: "RESTAURANT",
         isActive: true,
         isOpen: true,
@@ -80,6 +110,9 @@ async function main() {
         deliveryRadius: "8km",
         minimumOrder: 40.0,
         customMessage: "Pizza Corner - Les meilleures pizzas de Rabat !",
+        cuisines: {
+          connect: { id: cuisines[1].id }, // Associer avec "Italienne"
+        },
       },
     }),
     prisma.users.create({
@@ -93,7 +126,6 @@ async function main() {
         restaurantName: "Sushi Zen",
         description: "Restaurant japonais authentique proposant sushis, sashimis et plats traditionnels japonais.",
         logo: "/placeholder.svg?height=100&width=100",
-        cuisine: "Japonaise",
         role: "RESTAURANT",
         isActive: true,
         isOpen: true,
@@ -101,11 +133,37 @@ async function main() {
         deliveryRadius: "12km",
         minimumOrder: 80.0,
         customMessage: "Sushi Zen - L'art culinaire japonais à Marrakech",
+        cuisines: {
+          connect: { id: cuisines[2].id }, // Associer avec "Japonaise"
+        },
       },
     }),
-  ])
+    prisma.users.create({
+      data: {
+        email: "restaurant4@droovo.ma",
+        password: "password123",
+        name: "Restaurant Manager 4",
+        phone: "+212 6 45 67 89 01",
+        address: "321 Rue de la République",
+        city: "Fès",
+        restaurantName: "Le Gourmet Libanais",
+        description: "Spécialités libanaises authentiques dans une ambiance conviviale.",
+        logo: "/placeholder.svg?height=100&width=100",
+        role: "RESTAURANT",
+        isActive: true,
+        isOpen: true,
+        hours: "Lun-Dim: 11h-22h",
+        deliveryRadius: "10km",
+        minimumOrder: 60.0,
+        customMessage: "Découvrez nos saveurs libanaises au Gourmet Libanais",
+        cuisines: {
+          connect: { id: cuisines[4].id }, // Associer avec "Libanaise"
+        },
+      },
+    }),
+  ]);
 
-  // Créer les plats
+  // Créer des plats pour "Le Tajine Royal"
   const tajineRoyalDishes = await Promise.all([
     prisma.dishes.create({
       data: {
@@ -141,41 +199,7 @@ async function main() {
         userId: restaurants[0].id,
       },
     }),
-    prisma.dishes.create({
-      data: {
-        name: "Pastilla au Poulet",
-        description: "Feuilleté traditionnel au poulet, amandes et cannelle, saupoudré de sucre glace",
-        price: 65.0,
-        image: "/placeholder.svg?height=300&width=400",
-        isAvailable: true,
-        preparationTime: 30,
-        ingredients: ["Pâte filo", "Poulet", "Amandes", "Cannelle", "Sucre glace"],
-        calories: 450,
-        isVegetarian: false,
-        isVegan: false,
-        isGlutenFree: false,
-        categoryId: categories[0].id,
-        userId: restaurants[0].id,
-      },
-    }),
-    prisma.dishes.create({
-      data: {
-        name: "Thé à la Menthe",
-        description: "Thé vert traditionnel marocain à la menthe fraîche",
-        price: 15.0,
-        image: "/placeholder.svg?height=300&width=400",
-        isAvailable: true,
-        preparationTime: 5,
-        ingredients: ["Thé vert", "Menthe fraîche", "Sucre"],
-        calories: 25,
-        isVegetarian: true,
-        isVegan: true,
-        isGlutenFree: true,
-        categoryId: categories[3].id,
-        userId: restaurants[0].id,
-      },
-    }),
-  ])
+  ]);
 
   // Créer des clients
   const customers = await Promise.all([
@@ -188,25 +212,7 @@ async function main() {
         city: "Casablanca",
       },
     }),
-    prisma.customers.create({
-      data: {
-        email: "client2@example.com",
-        name: "Fatima Alaoui",
-        phone: "+212 6 55 66 77 88",
-        address: "34 Avenue de la Liberté",
-        city: "Rabat",
-      },
-    }),
-    prisma.customers.create({
-      data: {
-        email: "client3@example.com",
-        name: "Youssef Tazi",
-        phone: "+212 6 99 88 77 66",
-        address: "56 Boulevard Mohammed VI",
-        city: "Marrakech",
-      },
-    }),
-  ])
+  ]);
 
   // Créer commandes
   const orders = await Promise.all([
@@ -227,44 +233,20 @@ async function main() {
               quantity: 1,
               price: 85.0,
             },
-            {
-              dishId: tajineRoyalDishes[3].id,
-              quantity: 2,
-              price: 15.0,
-            },
           ],
         },
       },
     }),
-  ])
+  ]);
 
-  // Créer avis
-  const reviews = await Promise.all([
-    prisma.reviews.create({
-      data: {
-        customerId: customers[0].id,
-        userId: restaurants[0].id,
-        rating: 5,
-        comment: "Excellent tajine ! Service rapide et plats délicieux. Je recommande vivement !",
-      },
-    }),
-  ])
-
-  console.log("✅ Database seeded successfully!")
-  console.log(`📊 Created:`)
-  console.log(`   - ${categories.length} categories`)
-  console.log(`   - ${restaurants.length} restaurants`)
-  console.log(`   - ${tajineRoyalDishes.length} dishes`)
-  console.log(`   - ${customers.length} customers`)
-  console.log(`   - ${orders.length} orders`)
-  console.log(`   - ${reviews.length} reviews`)
+  console.log("✅ Database seeded successfully!");
 }
 
 main()
   .catch((e) => {
-    console.error("❌ Error seeding database:", e)
-    process.exit(1)
+    console.error("❌ Error seeding database:", e);
+    process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect()
-  })
+    await prisma.$disconnect();
+  });

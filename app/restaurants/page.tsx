@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Search, MapPin, Star, Clock, SlidersHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,167 +16,12 @@ import Image from "next/image"
 import Footer from "@/components/footer"
 import ModernHeader from "@/components/header/modern-header"
 
-// Mock data étendu pour les restaurants
-const allRestaurants = [
-  {
-    id: 1,
-    name: "Pizza Palace",
-    cuisine: "Italien",
-    rating: 4.5,
-    reviewCount: 234,
-    deliveryTime: "25-35 min",
-    image: "/placeholder.svg?height=200&width=300",
-    description: "Pizzas authentiques et pâtes fraîches",
-    location: "Centre-ville, Casablanca",
-    distance: 1.2,
-    priceRange: "250 MAD",
-    isOpen: true,
-    deliveryFee: 25,
-    minOrder: 150,
-    tags: ["Pizza", "Italien", "Livraison rapide"],
-    promotions: ["Livraison gratuite dès 25€"],
-  },
-  {
-    id: 2,
-    name: "Burger House",
-    cuisine: "Américain",
-    rating: 4.2,
-    reviewCount: 189,
-    deliveryTime: "20-30 min",
-    image: "/placeholder.svg?height=200&width=300",
-    description: "Burgers gourmets et frites maison",
-    location: "Ain Diab",
-    distance: 2.1,
-    priceRange: "300 MAD",
-    isOpen: true,
-    deliveryFee: 30,
-    minOrder: 120,
-    tags: ["Burger", "Américain", "Frites"],
-    promotions: [],
-  },
-  {
-    id: 3,
-    name: "Sushi Zen",
-    cuisine: "Japonais",
-    rating: 4.8,
-    reviewCount: 312,
-    deliveryTime: "30-40 min",
-    image: "/placeholder.svg?height=200&width=300",
-    description: "Sushi frais et cuisine japonaise traditionnelle",
-    location: "Centre-ville, Casablanca",
-    distance: 0.8,
-    priceRange: "450 MAD",
-    isOpen: false,
-    deliveryFee: 40,
-    minOrder: 200,
-    tags: ["Sushi", "Japonais", "Poisson frais"],
-    promotions: ["20% sur la première commande"],
-  },
-  {
-    id: 4,
-    name: "Tajine d'Or",
-    cuisine: "Marocain",
-    rating: 4.6,
-    reviewCount: 156,
-    deliveryTime: "35-45 min",
-    image: "/placeholder.svg?height=200&width=300",
-    description: "Cuisine marocaine authentique",
-    location: "Maarif",
-    distance: 3.2,
-    priceRange: "280 MAD",
-    isOpen: true,
-    deliveryFee: 20,
-    minOrder: 180,
-    tags: ["Marocain", "Tajine", "Couscous"],
-    promotions: [],
-  },
-  {
-    id: 5,
-    name: "Le Bistrot Français",
-    cuisine: "Français",
-    rating: 4.4,
-    reviewCount: 278,
-    deliveryTime: "40-50 min",
-    image: "/placeholder.svg?height=200&width=300",
-    description: "Cuisine française traditionnelle",
-    location: "Centre-ville, Casablanca",
-    distance: 1.5,
-    priceRange: "500 MAD",
-    isOpen: true,
-    deliveryFee: 35,
-    minOrder: 250,
-    tags: ["Français", "Traditionnel", "Gastronomie"],
-    promotions: ["Menu du jour à -15%"],
-  },
-  {
-    id: 6,
-    name: "Taco Loco",
-    cuisine: "Mexicain",
-    rating: 4.1,
-    reviewCount: 145,
-    deliveryTime: "25-35 min",
-    image: "/placeholder.svg?height=200&width=300",
-    description: "Tacos et cuisine mexicaine épicée",
-    location: "Ain Diab",
-    distance: 2.8,
-    priceRange: "180 MAD",
-    isOpen: true,
-    deliveryFee: 25,
-    minOrder: 100,
-    tags: ["Mexicain", "Tacos", "Épicé"],
-    promotions: ["2 tacos achetés = 1 offert"],
-  },
-  {
-    id: 7,
-    name: "Dragon d'Asie",
-    cuisine: "Chinois",
-    rating: 4.3,
-    reviewCount: 203,
-    deliveryTime: "30-40 min",
-    image: "/placeholder.svg?height=200&width=300",
-    description: "Cuisine chinoise authentique et dim sum",
-    location: "Bourgogne",
-    distance: 2.5,
-    priceRange: "320 MAD",
-    isOpen: true,
-    deliveryFee: 30,
-    minOrder: 150,
-    tags: ["Chinois", "Dim Sum", "Nouilles"],
-    promotions: [],
-  },
-  {
-    id: 8,
-    name: "Healthy Bowl",
-    cuisine: "Healthy",
-    rating: 4.7,
-    reviewCount: 167,
-    deliveryTime: "20-30 min",
-    image: "/placeholder.svg?height=200&width=300",
-    description: "Bowls healthy et cuisine végétarienne",
-    location: "Centre-ville, Casablanca",
-    distance: 1.0,
-    priceRange: "290 MAD",
-    isOpen: true,
-    deliveryFee: 20,
-    minOrder: 120,
-    tags: ["Healthy", "Végétarien", "Bio"],
-    promotions: ["Livraison gratuite dès 20€"],
-  },
-]
-
+// Fetching restaurants data from backend (replace with actual API call in production)
 const cuisineTypes = [
-  "Tous",
-  "Italien",
-  "Américain",
-  "Japonais",
-  "Marocain",
-  "Français",
-  "Mexicain",
-  "Chinois",
-  "Healthy",
-]
-const locations = ["Toutes zones", "Centre-ville, Casablanca", "Ain Diab", "Maarif", "Bourgogne"]
-const priceRanges = ["Tous prix", "€", "€€", "€€€"]
+  "Tous", "Italien", "Américain", "Japonais", "Marocain", "Français", "Mexicain", "Chinois", "Healthy",
+];
+const locations = ["Toutes zones", "Centre-ville, Casablanca", "Ain Diab", "Maarif", "Bourgogne"];
+const priceRanges = ["Tous prix", "€", "€€", "€€€"];
 
 export default function RestaurantsPage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -188,15 +33,40 @@ export default function RestaurantsPage() {
   const [showPromotionsOnly, setShowPromotionsOnly] = useState(false)
   const [maxDistance, setMaxDistance] = useState([5])
   const [minRating, setMinRating] = useState([0])
-  const [searchQuery, setSearchQuery] = useState("")
+  const [restaurants, setRestaurants] = useState<any[]>([])
 
-  const filteredRestaurants = allRestaurants
+  useEffect(() => {
+    async function fetchRestaurants() {
+      try {
+        const response = await fetch(`/api/restaurants?search=${searchTerm}&cuisine=${selectedCuisine}&location=${selectedLocation}&priceRange=${selectedPriceRange}&minRating=${minRating[0]}&maxDistance=${maxDistance[0]}&isOpen=${showOpenOnly}&promotionsOnly=${showPromotionsOnly}`)
+        const data = await response.json()
+        setRestaurants(data.restaurants || [])
+      } catch (error) {
+        console.error("Error fetching restaurants:", error)
+      }
+    }
+    fetchRestaurants()
+  }, [searchTerm, selectedCuisine, selectedLocation, selectedPriceRange, minRating, maxDistance, showOpenOnly, showPromotionsOnly])
+
+  const resetFilters = () => {
+    setSearchTerm("")
+    setSelectedCuisine("Tous")
+    setSelectedLocation("Toutes zones")
+    setSelectedPriceRange("Tous prix")
+    setSortBy("rating")
+    setShowOpenOnly(false)
+    setShowPromotionsOnly(false)
+    setMaxDistance([5])
+    setMinRating([0])
+  }
+
+  const filteredRestaurants = restaurants
     .filter((restaurant) => {
       const matchesSearch =
         restaurant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         restaurant.cuisine.toLowerCase().includes(searchTerm.toLowerCase()) ||
         restaurant.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        restaurant.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+        restaurant.tags?.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
 
       const matchesCuisine = selectedCuisine === "Tous" || restaurant.cuisine === selectedCuisine
       const matchesLocation = selectedLocation === "Toutes zones" || restaurant.location === selectedLocation
@@ -232,28 +102,16 @@ export default function RestaurantsPage() {
       }
     })
 
-  const resetFilters = () => {
-    setSearchTerm("")
-    setSelectedCuisine("Tous")
-    setSelectedLocation("Toutes zones")
-    setSelectedPriceRange("Tous prix")
-    setSortBy("rating")
-    setShowOpenOnly(false)
-    setShowPromotionsOnly(false)
-    setMaxDistance([5])
-    setMinRating([0])
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 pt-20">
       {/* Header */}
-      <ModernHeader cartItemsCount={0} userLocation="Casablanca, Maroc" onSearch={(query) => setSearchQuery(query)} />
+      <ModernHeader cartItemsCount={0} userLocation="Casablanca, Maroc" onSearch={(query) => setSearchTerm(query)} />
 
       {/* Page Header */}
       <section className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">Tous les restaurants</h1>
-          <p className="text-gray-600 mb-6">Découvrez {allRestaurants.length} restaurants près de chez vous</p>
+          <p className="text-gray-600 mb-6">Découvrez {restaurants.length} restaurants près de chez vous</p>
 
           {/* Search Bar */}
           <div className="relative max-w-2xl">
@@ -271,7 +129,7 @@ export default function RestaurantsPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sidebar Filters - Desktop */}
+          {/* Sidebar Filters */}
           <div className="hidden lg:block w-80 space-y-6">
             <Card>
               <CardHeader>
@@ -488,25 +346,6 @@ export default function RestaurantsPage() {
               </Select>
             </div>
 
-            {/* Desktop Sort */}
-            <div className="hidden lg:flex items-center justify-between mb-6">
-              <p className="text-gray-600">
-                {filteredRestaurants.length} restaurant{filteredRestaurants.length > 1 ? "s" : ""} trouvé
-                {filteredRestaurants.length > 1 ? "s" : ""}
-              </p>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Trier par" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="rating">Note</SelectItem>
-                  <SelectItem value="distance">Distance</SelectItem>
-                  <SelectItem value="deliveryTime">Temps de livraison</SelectItem>
-                  <SelectItem value="deliveryFee">Frais de livraison</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
             {/* Restaurants Grid */}
             {filteredRestaurants.length === 0 ? (
               <Card>
@@ -574,7 +413,7 @@ export default function RestaurantsPage() {
 
                           {/* Tags */}
                           <div className="flex flex-wrap gap-1">
-                            {restaurant.tags.slice(0, 3).map((tag) => (
+                            {(restaurant.tags || []).slice(0, 3).map((tag) => (
                               <Badge key={tag} variant="outline" className="text-xs">
                                 {tag}
                               </Badge>

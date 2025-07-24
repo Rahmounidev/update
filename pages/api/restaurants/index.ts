@@ -1,42 +1,54 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma"; // Assurez-vous que le chemin vers votre fichier prisma est correct
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const { cuisine, isOpen, minRating } = req.query;
+    const { cuisine, search, isOpen, minRating } = req.query;
 
+    // Initialiser les filtres de recherche
     const filters: any = {
       role: "RESTAURANT",
-      isActive: true,
+      isActive: true, // Filtrer uniquement les restaurants actifs
     };
 
+    // Filtrer par restaurants ouverts
     if (isOpen === "true") {
       filters.isOpen = true;
     }
 
+    // Filtrer par cuisine spécifique
     if (cuisine) {
       filters.cuisines = {
         some: {
           name: {
-            equals: cuisine as string,
+            contains: String(cuisine), // Recherche insensible à la casse pour la cuisine
+            mode: "insensitive", // Ignorer la casse
           },
         },
       };
     }
 
+    // Filtrer par évaluation minimale
     if (minRating) {
       filters.reviews = {
         some: {
           rating: {
-            gte: parseFloat(minRating as string),
+            gte: parseFloat(minRating as string), // Convertir la note minimale en nombre
           },
         },
       };
     }
 
+    // Filtrer par recherche de texte (nom, cuisine, description)
+    if (search) {
+      filters.OR = [
+        { restaurantName: { contains: String(search), mode: "insensitive" } },
+        { description: { contains: String(search), mode: "insensitive" } },
+        { cuisines: { some: { name: { contains: String(search), mode: "insensitive" } } } },
+      ];
+    }
+
+    // Recherche des restaurants en fonction des filtres
     const restaurants = await prisma.users.findMany({
       where: filters,
       select: {
@@ -63,7 +75,7 @@ export default async function handler(
             isActive: true,
           },
           select: {
-            name: true, // ✅ champ correct dans le modèle "promotions"
+            name: true,
           },
         },
         reviews: {
@@ -73,7 +85,7 @@ export default async function handler(
         },
         dishes: {
           where: {
-            isAvailable: true,
+            isAvailable: true, // Filtrer les plats disponibles
           },
           select: {
             id: true,
@@ -81,14 +93,17 @@ export default async function handler(
             price: true,
             image: true,
           },
-          take: 3,
+          take: 3, // Limiter à 3 plats
         },
       },
     });
 
+    // Retourner les restaurants filtrés
     res.status(200).json({ restaurants });
   } catch (error) {
     console.error("Restaurants error:", error);
-    res.status(500).json({ message: "Erreur lors de la récupération des restaurants" });
+    res.status(500).json({
+      message: "Erreur lors de la récupération des restaurants",
+    });
   }
 }

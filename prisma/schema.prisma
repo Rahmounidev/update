@@ -32,8 +32,8 @@ model users {
   security       Json?
   customMessage  String?
 
-  // Relations
-    cuisines       cuisine[] @relation("UserCuisines") // ← Ajouté
+  // Relations avec cuisines (Un restaurant peut avoir plusieurs cuisines)
+  cuisines       cuisine[] @relation("UserCuisines")
 
   orders         orders[]
   dishes         dishes[]
@@ -47,12 +47,13 @@ model users {
   sessions       sessions[]
   userRoles      user_roles[]
 }
+
+// Table des cuisines
 model cuisine {
   id    String   @id @default(cuid())
   name  String   @unique
   users users[]  @relation("UserCuisines")
 }
-
 
 // Table des clients
 model customers {
