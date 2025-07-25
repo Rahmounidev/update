@@ -1,58 +1,40 @@
-import type { NextApiRequest, NextApiResponse } from "next"
-import { getIronSession } from "iron-session"
-import { prisma } from "@/lib/db"
-import { createReviewSchema } from "@/lib/validations/review"
-import { sessionOptions, type SessionData } from "@/lib/session"
+import type { NextApiRequest, NextApiResponse } from "next";
+import { getIronSession } from "iron-session";
+import { prisma } from "@/lib/db";
+import { createReviewSchema } from "@/lib/validations/review";
+import { sessionOptions, type SessionData } from "@/lib/session";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  console.log("🔍 API /api/reviews appelé avec la méthode:", req.method);
+
   if (req.method !== "POST") {
-    return res.status(405).json({ message: "Method not allowed" })
+    return res.status(405).json({ message: "Method not allowed" });
   }
 
-  const session = await getIronSession<SessionData>(req, res, sessionOptions)
+  const session = await getIronSession<SessionData>(req, res, sessionOptions);
+  console.log("📦 Session récupérée:", session);
 
-  if (!session.isLoggedIn || !session.userId) {
-    return res.status(401).json({ message: "Non authentifié" })
+  const currentUserId = session.customerId || session.userId;
+  if (!session.isLoggedIn || !currentUserId) {
+    return res.status(401).json({ message: "Non authentifié" });
   }
 
   try {
-    const validatedData = createReviewSchema.parse(req.body)
-    const { rating, comment, userId: restaurantId } = validatedData
+    console.log("📥 Corps de la requête:", req.body);
 
-    // Vérifier que le client a bien commandé dans ce restaurant
-    const hasOrdered = await prisma.orders.findFirst({
-      where: {
-        customerId: session.userId,
-        userId: restaurantId,
-        status: "DELIVERED",
-      },
-    })
+    const validatedData = createReviewSchema.parse(req.body);
+    const { rating, comment, userId: restaurantId } = validatedData;
 
-    if (!hasOrdered) {
-      return res.status(403).json({
-        message: "Vous devez avoir commandé dans ce restaurant pour laisser un avis",
-      })
-    }
+    console.log("✅ Données validées:", validatedData);
 
-    // Vérifier qu'il n'y a pas déjà un avis de ce client pour ce restaurant
-    const existingReview = await prisma.reviews.findFirst({
-      where: {
-        customerId: session.userId,
-        userId: restaurantId,
-      },
-    })
+    // Ici on ne vérifie ni les commandes ni les avis existants
 
-    if (existingReview) {
-      return res.status(400).json({
-        message: "Vous avez déjà laissé un avis pour ce restaurant",
-      })
-    }
-
+    // Crée l'avis directement
     const review = await prisma.reviews.create({
       data: {
         rating,
         comment,
-        customerId: session.userId,
+        customerId: currentUserId,
         userId: restaurantId,
       },
       include: {
@@ -62,9 +44,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           },
         },
       },
-    })
+    });
 
-    res.status(201).json({
+    console.log("🎉 Avis créé:", review);
+
+    return res.status(201).json({
       message: "Avis créé avec succès",
       review: {
         id: review.id,
@@ -73,14 +57,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         createdAt: review.createdAt,
         customerName: review.customers.name,
       },
-    })
+    });
   } catch (error: any) {
-    console.error("Create review error:", error)
+    console.error("❌ Erreur API /api/reviews:", error);
 
     if (error.name === "ZodError") {
-      return res.status(400).json({ message: "Données invalides", errors: error.errors })
+      return res.status(400).json({ message: "Données invalides", errors: error.errors });
     }
 
-    res.status(500).json({ message: "Erreur lors de la création de l'avis" })
+    return res.status(500).json({ message: "Erreur lors de la création de l'avis" });
   }
 }

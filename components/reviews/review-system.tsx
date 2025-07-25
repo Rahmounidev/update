@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 interface Review {
   id: string
-  userName: string
+  customerName: string
   rating: number
   comment: string
   date: string
@@ -36,31 +36,100 @@ interface ReviewSystemProps {
   totalReviews: number
 }
 
-export default function ReviewSystem({ restaurantId, reviews, averageRating, totalReviews }: ReviewSystemProps) {
+export default function ReviewSystem({
+  restaurantId,
+  reviews: initialReviews,
+  averageRating,
+  totalReviews,
+}: ReviewSystemProps) {
+  const [reviews, setReviews] = useState<Review[]>(initialReviews)
   const [newRating, setNewRating] = useState(0)
   const [newComment, setNewComment] = useState("")
   const [reportReason, setReportReason] = useState("")
   const [reportDetails, setReportDetails] = useState("")
   const [selectedReview, setSelectedReview] = useState<Review | null>(null)
+  const [loading, setLoading] = useState(false)
 
-  const submitReview = () => {
-    // Logique pour soumettre l'avis
-    console.log("Review submitted:", { restaurantId, rating: newRating, comment: newComment })
-    setNewRating(0)
-    setNewComment("")
+  /** Vérifie si l'utilisateur est connecté via l'API session */
+  const checkSession = async () => {
+    try {
+      const res = await fetch("/api/session", { credentials: "include" })
+      if (!res.ok) return null
+      return await res.json()
+    } catch (err) {
+      console.error("Erreur checkSession:", err)
+      return null
+    }
   }
 
-  const reportReview = () => {
-    // Logique pour signaler un avis
-    console.log("Review reported:", { reviewId: selectedReview?.id, reason: reportReason, details: reportDetails })
-    setReportReason("")
-    setReportDetails("")
-    setSelectedReview(null)
+  const submitReview = async () => {
+    if (newRating === 0 || newComment.trim() === "") return;
+  
+    try {
+      setLoading(true);
+      const response = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include", // Obligatoire pour iron-session
+        body: JSON.stringify({
+          userId: restaurantId, // Le backend attend userId
+          rating: newRating,
+          comment: newComment,
+        }),
+      });
+  
+      const data = await response.json();
+      if (!response.ok) {
+        console.error("Erreur API:", data);
+        throw new Error(data.message || "Erreur lors de la soumission de l'avis.");
+      }
+  
+      setReviews([data.review, ...reviews]);
+      setNewRating(0);
+      setNewComment("");
+    } catch (error) {
+      console.error(error);
+      alert("Impossible d'envoyer votre avis. Vérifiez votre connexion ou votre session.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+
+  /** Signaler un avis */
+  const reportReview = async () => {
+    if (!selectedReview) return
+
+    try {
+      await fetch(`/api/reviews/${selectedReview.id}/report`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ reason: reportReason, details: reportDetails }),
+      })
+      console.log("Review reported:", { reviewId: selectedReview.id, reason: reportReason, details: reportDetails })
+    } catch (error) {
+      console.error("Erreur lors du signalement de l'avis:", error)
+    } finally {
+      setReportReason("")
+      setReportDetails("")
+      setSelectedReview(null)
+    }
   }
 
-  const markHelpful = (reviewId: string, helpful: boolean) => {
-    // Logique pour marquer un avis comme utile
-    console.log("Review marked as helpful:", { reviewId, helpful })
+  /** Marquer un avis comme utile / pas utile */
+  const markHelpful = async (reviewId: string, helpful: boolean) => {
+    try {
+      await fetch(`/api/reviews/${reviewId}/helpful`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ helpful }),
+      })
+      console.log("Review marked as helpful:", { reviewId, helpful })
+    } catch (error) {
+      console.error(error)
+    }
   }
 
   return (
@@ -115,8 +184,8 @@ export default function ReviewSystem({ restaurantId, reviews, averageRating, tot
                 </div>
 
                 <DialogFooter>
-                  <Button onClick={submitReview} disabled={newRating === 0}>
-                    Publier l'avis
+                  <Button onClick={submitReview} disabled={newRating === 0 || loading}>
+                    {loading ? "Envoi..." : "Publier l'avis"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -161,10 +230,10 @@ export default function ReviewSystem({ restaurantId, reviews, averageRating, tot
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold">
-                    {review.userName.charAt(0).toUpperCase()}
+                    {(review.customerName?.charAt(0) ?? "?").toUpperCase()}
                   </div>
                   <div>
-                    <CardTitle className="text-base">{review.userName}</CardTitle>
+                    <CardTitle className="text-base">{review.customerName ?? "Utilisateur"}</CardTitle>
                     <div className="flex items-center space-x-2">
                       <div className="flex items-center">
                         {[...Array(5)].map((_, i) => (

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Star, Clock, MapPin, Plus, Minus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -24,95 +24,6 @@ import ReviewSystem from "@/components/reviews/review-system"
 import WhatsAppNotification from "@/components/notifications/whatsapp-notification"
 import ModernHeader from "@/components/header/modern-header"
 
-// Mock data pour le restaurant
-const restaurant = {
-  id: 1,
-  name: "Pizza Palace",
-  cuisine: "Italien",
-  rating: 4.5,
-  reviewCount: 234,
-  deliveryTime: "25-35 min",
-  image: "/placeholder.svg?height=300&width=600",
-  description: "Pizzas authentiques et pâtes fraîches préparées avec des ingrédients de qualité",
-  location: "123 Avenue Hassan II, Centre-ville, Casablanca",
-  phone: "+212 5 22 98 76 54",
-  isOpen: true,
-  openingHours: "11h00 - 23h00",
-}
-
-const menuCategories = [
-  {
-    id: 1,
-    name: "Pizzas",
-    items: [
-      {
-        id: 1,
-        name: "Pizza Margherita",
-        description: "Sauce tomate, mozzarella, basilic frais",
-        price: 129,
-        image: "/placeholder.svg?height=150&width=200",
-        options: [
-          { name: "Taille", choices: ["Petite (+0 DH)", "Moyenne (+30 DH)", "Grande (+60 DH)"], required: true },
-          { name: "Pâte", choices: ["Fine", "Épaisse", "Sans gluten (+20 DH)"], required: true },
-        ],
-        extras: [
-          { name: "Olives", price: 15 },
-          { name: "Champignons", price: 20 },
-          { name: "Jambon", price: 25 },
-        ],
-      },
-      {
-        id: 2,
-        name: "Pizza 4 Fromages",
-        description: "Mozzarella, gorgonzola, parmesan, chèvre",
-        price: 159,
-        image: "/placeholder.svg?height=150&width=200",
-        options: [
-          { name: "Taille", choices: ["Petite (+0 DH)", "Moyenne (+30 DH)", "Grande (+60 DH)"], required: true },
-          { name: "Pâte", choices: ["Fine", "Épaisse", "Sans gluten (+20 DH)"], required: true },
-        ],
-        extras: [
-          { name: "Noix", price: 20 },
-          { name: "Miel", price: 10 },
-        ],
-      },
-    ],
-  },
-  {
-    id: 2,
-    name: "Pâtes",
-    items: [
-      {
-        id: 3,
-        name: "Spaghetti Carbonara",
-        description: "Spaghetti, lardons, œuf, parmesan, crème fraîche",
-        price: 135,
-        image: "/placeholder.svg?height=150&width=200",
-        options: [{ name: "Portion", choices: ["Normale", "Grande (+30 DH)"], required: true }],
-        extras: [
-          { name: "Parmesan supplémentaire", price: 20 },
-          { name: "Lardons supplémentaires", price: 25 },
-        ],
-      },
-    ],
-  },
-  {
-    id: 3,
-    name: "Desserts",
-    items: [
-      {
-        id: 4,
-        name: "Tiramisu",
-        description: "Mascarpone, café, cacao, biscuits à la cuillère",
-        price: 65,
-        image: "/placeholder.svg?height=150&width=200",
-        options: [],
-        extras: [],
-      },
-    ],
-  },
-]
-
 interface CartItem {
   id: number
   name: string
@@ -124,6 +35,13 @@ interface CartItem {
 }
 
 export default function RestaurantPage({ params }: { params: { id: string } }) {
+  // States données API
+  const [restaurant, setRestaurant] = useState<any>(null)
+  const [reviews, setReviews] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // States menu / ajout panier
   const [cart, setCart] = useState<CartItem[]>([])
   const [selectedItem, setSelectedItem] = useState<any>(null)
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({})
@@ -131,55 +49,105 @@ export default function RestaurantPage({ params }: { params: { id: string } }) {
   const [specialInstructions, setSpecialInstructions] = useState("")
   const [quantity, setQuantity] = useState(1)
 
-  const addToCart = () => {
-    if (!selectedItem) return
+  // States ajout avis
+  const [newRating, setNewRating] = useState(0)
+  const [newComment, setNewComment] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
-    const cartItem: CartItem = {
-      id: Date.now(),
-      name: selectedItem.name,
-      price: calculateItemPrice(),
-      quantity,
-      selectedOptions,
-      selectedExtras,
-      specialInstructions,
+   // Nouveau state pour la session utilisateur (optionnel, si tu veux mémoriser)
+   const [sessionUser, setSessionUser] = useState<any>(null)
+
+   // ** Ajout du useEffect pour vérifier la session **
+   useEffect(() => {
+     async function checkSession() {
+       try {
+         const res = await fetch("/api/session", { credentials: "include" })
+         if (res.ok) {
+           const data = await res.json()
+           console.log("Session user:", data)
+           setSessionUser(data) // stocker si besoin
+         } else {
+           console.log("Pas connecté")
+           setSessionUser(null)
+         }
+       } catch (error) {
+         console.error("Erreur check session:", error)
+         setSessionUser(null)
+       }
+     }
+     checkSession()
+   }, [])
+   
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true)
+        setError(null)
+
+        // Récupérer infos restaurant + menu
+        const resRestaurant = await fetch(`/api/restaurants/${params.id}`, { credentials: "include" })
+        if (!resRestaurant.ok) throw new Error("Erreur chargement restaurant")
+        const dataRestaurant = await resRestaurant.json()
+        if (!dataRestaurant.restaurant) throw new Error("Restaurant non trouvé")
+
+        // Récupérer avis paginés (page 1, 10)
+        const resReviews = await fetch(`/api/reviews/restaurant/${params.id}?page=1&limit=10`, { credentials: "include" })
+        if (!resReviews.ok) throw new Error("Erreur chargement avis")
+        const dataReviews = await resReviews.json()
+
+        setRestaurant(dataRestaurant.restaurant)
+        setReviews(dataReviews.reviews)
+      } catch (err: any) {
+        setError(err.message || "Erreur inconnue")
+      } finally {
+        setLoading(false)
+      }
     }
+    fetchData()
+  }, [params.id])
 
-    setCart([...cart, cartItem])
+  // Fonction pour envoyer l'avis
+  async function submitReview() {
+    if (newRating < 1 || newRating > 5) {
+      setSubmitError("Veuillez sélectionner une note entre 1 et 5.")
+      return
+    }
+    if (newComment.trim() === "") {
+      setSubmitError("Veuillez écrire un commentaire.")
+      return
+    }
+    setSubmitting(true)
+    setSubmitError(null)
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include", // Important pour envoyer cookie session
+        body: JSON.stringify({
+          rating: newRating,
+          comment: newComment,
+          userId: restaurant.id,
+        }),
+      })
 
-    // Reset form
-    setSelectedItem(null)
-    setSelectedOptions({})
-    setSelectedExtras([])
-    setSpecialInstructions("")
-    setQuantity(1)
-  }
-
-  const calculateItemPrice = () => {
-    if (!selectedItem) return 0
-
-    let price = selectedItem.price
-
-    // Add option prices
-    Object.values(selectedOptions).forEach((option: string) => {
-      const match = option.match(/\+(\d+) DH/)
-      if (match) {
-        price += Number.parseFloat(match[1])
+      if (!res.ok) {
+        const data = await res.json()
+        setSubmitError(data.message || "Erreur lors de l'envoi de l'avis.")
+        setSubmitting(false)
+        return
       }
-    })
+      const data = await res.json()
 
-    // Add extra prices
-    selectedExtras.forEach((extraName) => {
-      const extra = selectedItem.extras.find((e: any) => e.name === extraName)
-      if (extra) {
-        price += extra.price
-      }
-    })
-
-    return price * quantity
-  }
-
-  const getTotalCartPrice = () => {
-    return cart.reduce((total, item) => total + item.price, 0)
+      // Ajoute l'avis créé dans la liste (en tête)
+      setReviews((prev) => [data.review, ...prev])
+      setNewRating(0)
+      setNewComment("")
+      alert("Merci pour votre avis !")
+    } catch (error) {
+      setSubmitError("Erreur réseau, veuillez réessayer.")
+    }
+    setSubmitting(false)
   }
 
   const openItemDialog = (item: any) => {
@@ -190,23 +158,68 @@ export default function RestaurantPage({ params }: { params: { id: string } }) {
     setQuantity(1)
   }
 
+  const calculateItemPrice = () => {
+    if (!selectedItem) return 0
+    let price = selectedItem.price
+    Object.values(selectedOptions).forEach((option: string) => {
+      const match = option.match(/\+(\d+) DH/)
+      if (match) {
+        price += Number(match[1])
+      }
+    })
+    selectedExtras.forEach((extraName) => {
+      const extra = selectedItem.extras.find((e: any) => e.name === extraName)
+      if (extra) price += extra.price
+    })
+    return price * quantity
+  }
+
+  const addToCart = () => {
+    if (!selectedItem) return
+    const cartItem: CartItem = {
+      id: Date.now(),
+      name: selectedItem.name,
+      price: calculateItemPrice(),
+      quantity,
+      selectedOptions,
+      selectedExtras,
+      specialInstructions,
+    }
+    setCart([...cart, cartItem])
+    setSelectedItem(null)
+    setSelectedOptions({})
+    setSelectedExtras([])
+    setSpecialInstructions("")
+    setQuantity(1)
+  }
+
+  const getTotalCartPrice = () => cart.reduce((total, item) => total + item.price, 0)
+
+  const setSearchQuery = (query: string) => {
+    console.log("Search:", query)
+  }
+
+  if (loading) return <p className="p-4">Chargement...</p>
+  if (error) return <p className="p-4 text-red-600">Erreur : {error}</p>
+  if (!restaurant) return <p className="p-4">Restaurant non trouvé.</p>
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <ModernHeader cartItemsCount={cart.length} userLocation="Paris, France" />
+      <ModernHeader cartItemsCount={cart.length} userLocation="Casablanca, Maroc" onSearch={setSearchQuery} />
 
       <WhatsAppNotification
         orderId="ORD-2024-001"
         status="in_progress"
-        restaurantName={restaurant.name}
-        estimatedTime={restaurant.deliveryTime}
+        restaurantName={restaurant.restaurantName || restaurant.name}
+        estimatedTime={restaurant.deliveryTime || "30-40 min"}
       />
 
       {/* Restaurant Info */}
       <section className="relative">
         <Image
-          src={restaurant.image || "/placeholder.svg"}
-          alt={restaurant.name}
+          src={restaurant.logo || "/placeholder.svg"}
+          alt={restaurant.restaurantName || restaurant.name}
           width={600}
           height={300}
           className="w-full h-64 object-cover"
@@ -214,24 +227,24 @@ export default function RestaurantPage({ params }: { params: { id: string } }) {
         <div className="absolute inset-0 bg-black bg-opacity-40" />
         <div className="absolute bottom-0 left-0 right-0 text-white p-6">
           <div className="max-w-7xl mx-auto">
-            <h1 className="text-4xl font-bold mb-2">{restaurant.name}</h1>
+            <h1 className="text-4xl font-bold mb-2">{restaurant.restaurantName || restaurant.name}</h1>
             <p className="text-lg mb-4">{restaurant.description}</p>
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center space-x-1">
                 <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                <span className="font-medium">{restaurant.rating}</span>
-                <span className="text-gray-300">({restaurant.reviewCount} avis)</span>
+                <span className="font-medium">{restaurant.averageRating ?? restaurant.rating}</span>
+                <span className="text-gray-300">({restaurant.reviewCount ?? 0} avis)</span>
               </div>
               <div className="flex items-center space-x-1">
                 <Clock className="h-5 w-5" />
-                <span>{restaurant.deliveryTime}</span>
+                <span>{restaurant.deliveryTime || "30-40 min"}</span>
               </div>
               <div className="flex items-center space-x-1">
                 <MapPin className="h-5 w-5" />
-                <span>{restaurant.location}</span>
+                <span>{restaurant.address || restaurant.location}</span>
               </div>
               <Badge variant={restaurant.isOpen ? "default" : "secondary"}>
-                {restaurant.isOpen ? `Ouvert - ${restaurant.openingHours}` : "Fermé"}
+                {restaurant.isOpen ? `Ouvert - ${restaurant.hours || restaurant.openingHours}` : "Fermé"}
               </Badge>
             </div>
           </div>
@@ -249,12 +262,11 @@ export default function RestaurantPage({ params }: { params: { id: string } }) {
 
           <TabsContent value="menu" className="mt-6">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-              {/* Categories Navigation */}
               <div className="lg:col-span-1">
                 <div className="sticky top-4">
                   <h3 className="font-semibold text-lg mb-4">Catégories</h3>
                   <nav className="space-y-2">
-                    {menuCategories.map((category) => (
+                    {restaurant.menu?.map((category: any) => (
                       <a
                         key={category.id}
                         href={`#category-${category.id}`}
@@ -267,13 +279,12 @@ export default function RestaurantPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
 
-              {/* Menu Items */}
               <div className="lg:col-span-3">
-                {menuCategories.map((category) => (
+                {restaurant.menu?.map((category: any) => (
                   <div key={category.id} id={`category-${category.id}`} className="mb-8">
                     <h2 className="text-2xl font-bold mb-4">{category.name}</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {category.items.map((item) => (
+                      {category.dishes.map((item: any) => (
                         <Card key={item.id} className="cursor-pointer hover:shadow-md transition-shadow">
                           <div className="flex">
                             <div className="flex-1 p-4">
@@ -299,8 +310,7 @@ export default function RestaurantPage({ params }: { params: { id: string } }) {
 
                                       {selectedItem && (
                                         <div className="space-y-4">
-                                          {/* Options */}
-                                          {selectedItem.options.map((option: any, index: number) => (
+                                          {(selectedItem.options ?? []).map((option: any, index: number) => (
                                             <div key={index} className="space-y-2">
                                               <Label className="text-sm font-medium">
                                                 {option.name} {option.required && "*"}
@@ -327,8 +337,7 @@ export default function RestaurantPage({ params }: { params: { id: string } }) {
                                             </div>
                                           ))}
 
-                                          {/* Extras */}
-                                          {selectedItem.extras.length > 0 && (
+                                          {(selectedItem.extras ?? []).length > 0 && (
                                             <div className="space-y-2">
                                               <Label className="text-sm font-medium">Suppléments</Label>
                                               <div className="space-y-2">
@@ -340,9 +349,7 @@ export default function RestaurantPage({ params }: { params: { id: string } }) {
                                                         if (checked) {
                                                           setSelectedExtras([...selectedExtras, extra.name])
                                                         } else {
-                                                          setSelectedExtras(
-                                                            selectedExtras.filter((e) => e !== extra.name),
-                                                          )
+                                                          setSelectedExtras(selectedExtras.filter((e) => e !== extra.name))
                                                         }
                                                       }}
                                                     />
@@ -355,7 +362,6 @@ export default function RestaurantPage({ params }: { params: { id: string } }) {
                                             </div>
                                           )}
 
-                                          {/* Special Instructions */}
                                           <div className="space-y-2">
                                             <Label className="text-sm font-medium">Instructions spéciales</Label>
                                             <Textarea
@@ -365,7 +371,6 @@ export default function RestaurantPage({ params }: { params: { id: string } }) {
                                             />
                                           </div>
 
-                                          {/* Quantity */}
                                           <div className="flex items-center justify-between">
                                             <Label className="text-sm font-medium">Quantité</Label>
                                             <div className="flex items-center space-x-2">
@@ -377,11 +382,7 @@ export default function RestaurantPage({ params }: { params: { id: string } }) {
                                                 <Minus className="h-4 w-4" />
                                               </Button>
                                               <span className="w-8 text-center">{quantity}</span>
-                                              <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => setQuantity(quantity + 1)}
-                                              >
+                                              <Button variant="outline" size="sm" onClick={() => setQuantity(quantity + 1)}>
                                                 <Plus className="h-4 w-4" />
                                               </Button>
                                             </div>
@@ -391,9 +392,7 @@ export default function RestaurantPage({ params }: { params: { id: string } }) {
 
                                       <DialogFooter>
                                         <div className="flex justify-between items-center w-full">
-                                          <span className="font-bold text-lg">
-                                            {calculateItemPrice().toFixed(2)} DH
-                                          </span>
+                                          <span className="font-bold text-lg">{calculateItemPrice().toFixed(2)} DH</span>
                                           <Button onClick={addToCart}>Ajouter au panier</Button>
                                         </div>
                                       </DialogFooter>
@@ -429,7 +428,7 @@ export default function RestaurantPage({ params }: { params: { id: string } }) {
               <CardContent className="space-y-4">
                 <div>
                   <h4 className="font-medium">Adresse</h4>
-                  <p className="text-gray-600">{restaurant.location}</p>
+                  <p className="text-gray-600">{restaurant.address || restaurant.location}</p>
                 </div>
                 <div>
                   <h4 className="font-medium">Téléphone</h4>
@@ -437,45 +436,30 @@ export default function RestaurantPage({ params }: { params: { id: string } }) {
                 </div>
                 <div>
                   <h4 className="font-medium">Horaires d'ouverture</h4>
-                  <p className="text-gray-600">{restaurant.openingHours}</p>
+                  <p className="text-gray-600">{restaurant.hours || restaurant.openingHours}</p>
                 </div>
                 <div>
                   <h4 className="font-medium">Type de cuisine</h4>
-                  <p className="text-gray-600">{restaurant.cuisine}</p>
+                  <p className="text-gray-600">{restaurant.cuisines?.join(", ") || restaurant.cuisine}</p>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="reviews" className="mt-6">
+            
+
+            {/* Liste des avis */}
             <ReviewSystem
               restaurantId={restaurant.id.toString()}
-              reviews={[
-                {
-                  id: "1",
-                  userName: "Marie L.",
-                  rating: 5,
-                  comment: "Excellente pizza, livraison rapide et service impeccable !",
-                  date: "Il y a 2 jours",
-                  helpful: 12,
-                  orderId: "ORD-2024-001",
-                },
-                {
-                  id: "2",
-                  userName: "Thomas D.",
-                  rating: 4,
-                  comment: "Très bon restaurant, je recommande les pâtes carbonara.",
-                  date: "Il y a 1 semaine",
-                  helpful: 8,
-                  response: "Merci Thomas ! Nous sommes ravis que nos pâtes vous aient plu.",
-                },
-              ]}
-              averageRating={restaurant.rating}
-              totalReviews={restaurant.reviewCount}
+              reviews={reviews}
+              averageRating={restaurant.averageRating ?? restaurant.rating}
+              totalReviews={restaurant.reviewCount ?? 0}
             />
           </TabsContent>
         </Tabs>
       </section>
+
       <Footer />
     </div>
   )
