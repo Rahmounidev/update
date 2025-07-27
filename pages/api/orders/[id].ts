@@ -2,96 +2,111 @@ import type { NextApiRequest, NextApiResponse } from "next"
 import { getIronSession } from "iron-session"
 import { prisma } from "@/lib/db"
 import { sessionOptions, type SessionData } from "@/lib/session"
+import { z } from "zod"
+
+const reviewSchema = z.object({
+  rating: z.number().min(1).max(5),
+  comment: z.string().optional(),
+})
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const session = await getIronSession<SessionData>(req, res, sessionOptions)
+  console.log("🔍 API /api/orders/[id] appelé avec la méthode:", req.method)
 
-  if (!session.isLoggedIn || !session.userId) {
+  const session = await getIronSession<SessionData>(req, res, sessionOptions)
+  const currentUserId = session.customerId
+
+  if (!session.isLoggedIn || !currentUserId) {
     return res.status(401).json({ message: "Non authentifié" })
   }
 
-  const { id } = req.query
+  const orderId = req.query.id as string
+  if (!orderId) {
+    return res.status(400).json({ message: "ID de commande manquant" })
+  }
 
-  if (req.method === "GET") {
-    try {
-      const order = await prisma.orders.findFirst({
-        where: {
-          id: id as string,
-          customerId: session.userId,
-        },
+  try {
+    // --- GET : Récupérer la commande ---
+    if (req.method === "GET") {
+      const order = await prisma.orders.findUnique({
+        where: { id: orderId },
         include: {
-          users: {
-            select: {
-              restaurantName: true,
-              name: true,
-              logo: true,
-              phone: true,
-              address: true,
-            },
-          },
-          order_items: {
-            include: {
-              dishes: {
-                select: {
-                  name: true,
-                  image: true,
-                  description: true,
-                },
-              },
-            },
-          },
+          users: { select: { restaurantName: true } }, // Inclure le nom du restaurant
         },
       })
 
       if (!order) {
-        return res.status(404).json({ message: "Commande non trouvée" })
+        return res.status(404).json({ message: "Commande introuvable" })
       }
 
-      res.status(200).json({ order })
-    } catch (error) {
-      console.error("Get order error:", error)
-      res.status(500).json({ message: "Erreur lors de la récupération de la commande" })
+      if (order.customerId !== currentUserId) {
+        return res.status(403).json({ message: "Accès refusé à cette commande" })
+      }
+
+      // Calcul du temps estimé
+      let estimatedTime: string | null = null
+      if (order.deliveryTime) {
+        estimatedTime = new Date(order.deliveryTime).toLocaleTimeString()
+      } else {
+        const estimated = new Date(order.createdAt)
+        estimated.setMinutes(estimated.getMinutes() + 30) // 30 min par défaut
+        estimatedTime = estimated.toLocaleTimeString()
+      }
+
+      return res.status(200).json({
+        orderId: order.id,
+        status: order.status, // PENDING, CONFIRMED, PREPARING, READY, DELIVERED
+        restaurantName: order.users?.restaurantName || "Restaurant",
+        estimatedTime,
+      })
     }
-  } else if (req.method === "PATCH") {
-    try {
-      // Seule l'annulation est autorisée pour les clients
-      const { status } = req.body
 
-      if (status !== "CANCELLED") {
-        return res.status(403).json({ message: "Action non autorisée" })
-      }
+    // --- POST : Ajouter un avis ---
+    if (req.method === "POST") {
+      const { rating, comment } = reviewSchema.parse(req.body)
 
-      const order = await prisma.orders.findFirst({
-        where: {
-          id: id as string,
-          customerId: session.userId,
-        },
+      const order = await prisma.orders.findUnique({
+        where: { id: orderId },
+        select: { id: true, customerId: true, userId: true, status: true },
       })
 
       if (!order) {
-        return res.status(404).json({ message: "Commande non trouvée" })
+        return res.status(404).json({ message: "Commande introuvable" })
       }
 
-      if (order.status !== "PENDING") {
-        return res.status(400).json({
-          message: "Seules les commandes en attente peuvent être annulées",
-        })
+      if (order.customerId !== currentUserId) {
+        return res.status(403).json({ message: "Accès refusé à cette commande" })
       }
 
-      const updatedOrder = await prisma.orders.update({
-        where: { id: id as string },
-        data: { status: "CANCELLED" },
+      if (order.status !== "DELIVERED") {
+        return res.status(400).json({ message: "Impossible de noter une commande non livrée" })
+      }
+
+      const existingReview = await prisma.reviews.findFirst({
+        where: { customerId: currentUserId, userId: order.userId },
       })
 
-      res.status(200).json({
-        message: "Commande annulée avec succès",
-        order: updatedOrder,
+      if (existingReview) {
+        return res.status(400).json({ message: "Vous avez déjà laissé un avis pour ce restaurant." })
+      }
+
+      const review = await prisma.reviews.create({
+        data: {
+          rating,
+          comment: comment || null,
+          customerId: currentUserId,
+          userId: order.userId,
+        },
       })
-    } catch (error) {
-      console.error("Update order error:", error)
-      res.status(500).json({ message: "Erreur lors de la mise à jour de la commande" })
+
+      return res.status(201).json({ message: "Avis enregistré avec succès", review })
     }
-  } else {
-    res.status(405).json({ message: "Method not allowed" })
+
+    return res.status(405).json({ message: "Method not allowed" })
+  } catch (error: any) {
+    console.error("❌ Erreur API /api/orders/[id]:", error)
+    if (error.name === "ZodError") {
+      return res.status(400).json({ message: "Données invalides", errors: error.errors })
+    }
+    return res.status(500).json({ message: "Erreur serveur" })
   }
 }

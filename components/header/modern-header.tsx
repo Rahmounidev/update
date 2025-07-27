@@ -45,9 +45,9 @@ export default function ModernHeader({
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [notificationCount, setNotificationCount] = useState(0)
 
   useEffect(() => {
-    // Charger session via API
     async function fetchSession() {
       try {
         const res = await fetch("/api/session")
@@ -63,7 +63,21 @@ export default function ModernHeader({
         setLoading(false)
       }
     }
+
+    async function fetchNotifications() {
+      try {
+        const res = await fetch("/api/notifications/count")
+        if (res.ok) {
+          const data = await res.json()
+          setNotificationCount(data.count || 0)
+        }
+      } catch (error) {
+        console.error("Erreur de récupération des notifications :", error)
+      }
+    }
+
     fetchSession()
+    fetchNotifications()
 
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10)
@@ -77,11 +91,9 @@ export default function ModernHeader({
     onSearch?.(searchQuery)
   }
 
-  // Fonction déconnexion
   const handleLogout = async () => {
     await fetch("/api/logout", { method: "POST" })
     setSessionUser(null)
-    // Optionnel : rediriger vers la page d'accueil
     window.location.href = "/"
   }
 
@@ -98,25 +110,14 @@ export default function ModernHeader({
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
             <div className="relative transition-all duration-300">
-              {isScrolled ? (
-                <Image
-                  src="/images/droovo-logo-full.png"
-                  alt="Droovo"
-                  width={140}
-                  height={40}
-                  className="h-8 w-auto"
-                  priority
-                />
-              ) : (
-                <Image
-                  src="/images/droovo-logo.png"
-                  alt="Droovo"
-                  width={120}
-                  height={35}
-                  className="h-8 w-auto"
-                  priority
-                />
-              )}
+              <Image
+                src="/droovo-logo.png"
+                alt="Droovo"
+                width={140}
+                height={40}
+                className="h-8 w-auto"
+                priority
+              />
             </div>
           </Link>
 
@@ -156,11 +157,7 @@ export default function ModernHeader({
 
             {/* Loyalty Points - Desktop */}
             <div className="hidden lg:flex">
-              <LoyaltyBadge
-                points={sessionUser?.points || 0}
-                totalEarned={sessionUser?.totalEarned || 0}
-                size="sm"
-              />
+              <LoyaltyBadge size="sm" />
             </div>
 
             {/* Notifications */}
@@ -174,7 +171,11 @@ export default function ModernHeader({
               }`}
             >
               <Bell className="h-5 w-5" />
-              <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-red-500 text-white">3</Badge>
+              {notificationCount > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-red-500 text-white">
+                  {notificationCount}
+                </Badge>
+              )}
             </Button>
 
             {/* Cart */}
@@ -226,9 +227,7 @@ export default function ModernHeader({
                     <DropdownMenuItem asChild>
                       <Link href="/orders">Mes commandes</Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/favorites">Favoris</Link>
-                    </DropdownMenuItem>
+                
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={handleLogout}>Se déconnecter</DropdownMenuItem>
                   </>

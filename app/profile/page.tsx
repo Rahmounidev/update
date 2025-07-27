@@ -33,6 +33,13 @@ type Profile = {
   city: string
   createdAt: string
 }
+function Spinner() {
+  return (
+    <div className="flex justify-center py-8">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+    </div>
+  )
+}
 
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
@@ -86,7 +93,7 @@ export default function ProfilePage() {
     }
   }
 
-  if (loading) return <div className="p-10 text-center">Chargement...</div>
+  if (loading) return <Spinner />
   if (error || !profileData) return <div className="p-10 text-red-600 text-center">{error || 'Erreur'}</div>
 
   return (
@@ -102,7 +109,7 @@ export default function ProfilePage() {
                 Retour
               </Button>
             </Link>
-            <Image src="/images/droovo-logo-full.png" alt="Droovo" width={140} height={40} className="h-8 w-auto" />
+            <Image src="droovo-logo.png" alt="Droovo" width={140} height={40} className="h-8 w-auto" />
           </div>
 
           <div className="flex items-center space-x-6">

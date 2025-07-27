@@ -13,10 +13,7 @@ import ModernHeader from "@/components/header/modern-header"
 import RestaurantMap from "@/components/map/restaurant-map"
 import WhatsAppNotification from "@/components/notifications/whatsapp-notification"
 
-type Cuisine = {
-  name: string
-}
-
+type Cuisine = { name: string }
 type Restaurant = {
   id: string
   restaurantName: string
@@ -32,48 +29,83 @@ type Restaurant = {
   longitude?: number
   promotion?: string | null
 }
+type OrderData = {
+  orderId: string
+  status: string
+  restaurantName: string
+  estimatedTime: string
+}
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [cuisines, setCuisines] = useState<Cuisine[]>([])
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [loadingRestaurants, setLoadingRestaurants] = useState(false)
+  const [loadingCuisines, setLoadingCuisines] = useState(false)
+  const [errorRestaurants, setErrorRestaurants] = useState<string | null>(null)
+  const [errorCuisines, setErrorCuisines] = useState<string | null>(null)
   const [showMap, setShowMap] = useState(false)
-  const cuisineIcons: Record<string, string> = {
-    Marocain: "🥘",        // pain marocain (khobz)
-    Libanais: "🥙",        // pita falafel
-    Italien: "🍝",         // spaghetti
-    Indien: "🍛",          // curry
-    Healthy: "🥗",         // salade healthy
-    Français: "🥖",        // baguette
-    Desserts: "🍰",        // gâteau
-  }
-  
+  const [order, setOrder] = useState<OrderData | null>(null)
 
-  // Charger cuisines backend
+  const cuisineIcons: Record<string, string> = {
+    Marocain: "🥘",
+    Libanais: "🥙",
+    Italien: "🍝",
+    Indien: "🍛",
+    Healthy: "🥗",
+    Français: "🥖",
+    Desserts: "🍰",
+  }
+
+  // --- Charger la commande actuelle ---
+  useEffect(() => {
+    async function fetchOrder() {
+      try {
+        const orderId = "CMD-2024-001"
+        const res = await fetch(`/api/orders/${orderId}`)
+        const data = await res.json()
+        if (res.ok) {
+          setOrder({
+            orderId: data.orderId,
+            status: data.status.toLowerCase(),
+            restaurantName: data.restaurantName,
+            estimatedTime: data.estimatedTime,
+          })
+        }
+      } catch (err) {
+        console.error("Erreur lors du fetch de la commande :", err)
+      }
+    }
+    fetchOrder()
+  }, [])
+
+  // --- Charger cuisines ---
   useEffect(() => {
     async function fetchCuisines() {
+      setLoadingCuisines(true)
+      setErrorCuisines(null)
       try {
         const res = await fetch("/api/cuisine")
         const data = await res.json()
         if (res.ok && data.success) {
           setCuisines(data.data)
         } else {
-          setError("Erreur lors du chargement des cuisines")
+          setErrorCuisines("Erreur lors du chargement des cuisines")
         }
       } catch {
-        setError("Erreur réseau lors du chargement des cuisines")
+        setErrorCuisines("Erreur réseau lors du chargement des cuisines")
+      } finally {
+        setLoadingCuisines(false)
       }
     }
     fetchCuisines()
   }, [])
 
-  // Charger restaurants selon searchQuery
+  // --- Charger restaurants ---
   useEffect(() => {
     async function fetchRestaurants() {
-      setLoading(true)
-      setError(null)
+      setLoadingRestaurants(true)
+      setErrorRestaurants(null)
       try {
         const params = new URLSearchParams()
         if (searchQuery.trim()) params.append("search", searchQuery.trim())
@@ -82,18 +114,18 @@ export default function HomePage() {
         if (res.ok) {
           setRestaurants(data.restaurants || [])
         } else {
-          setError(data.message || "Erreur lors du chargement des restaurants")
+          setErrorRestaurants(data.message || "Erreur lors du chargement des restaurants")
         }
       } catch {
-        setError("Erreur réseau lors du chargement des restaurants")
+        setErrorRestaurants("Erreur réseau lors du chargement des restaurants")
       } finally {
-        setLoading(false)
+        setLoadingRestaurants(false)
       }
     }
     fetchRestaurants()
   }, [searchQuery])
 
-  // Préparer restaurants pour la map (limité à 5)
+  // --- Restaurants pour la carte ---
   const mapRestaurants = restaurants.slice(0, 5).map(r => ({
     id: r.id,
     name: r.restaurantName,
@@ -111,12 +143,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
       <ModernHeader cartItemsCount={0} userLocation="Casablanca, Maroc" onSearch={setSearchQuery} />
 
-      <WhatsAppNotification
-        orderId="CMD-2024-001"
-        status="confirmed"
-        restaurantName="Pizza Casa"
-        estimatedTime="25-35 min"
-      />
+      {order && <WhatsAppNotification orderId={order.orderId} />}
 
       {/* Hero Section */}
       <section className="relative pt-24 pb-16 overflow-hidden">
@@ -141,14 +168,18 @@ export default function HomePage() {
             />
             <Button
               className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-xl"
-              onClick={() => { /* le fetch est automatique à la saisie */ }}
+              onClick={() => {}}
             >
               Rechercher
             </Button>
           </div>
 
           <div className="flex flex-wrap justify-center gap-4 mb-12">
-            <Button variant="outline" className="rounded-full border-2 hover:bg-purple-50 hover:border-purple-300" onClick={() => setShowMap(!showMap)}>
+            <Button
+              variant="outline"
+              className="rounded-full border-2 hover:bg-purple-50 hover:border-purple-300"
+              onClick={() => setShowMap(!showMap)}
+            >
               <MapPin className="h-4 w-4 mr-2" />
               Voir sur la carte
             </Button>
@@ -179,31 +210,45 @@ export default function HomePage() {
 
       {/* Categories Section */}
       <section className="py-16 bg-white">
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div className="text-center mb-12">
-      <h2 className="text-3xl font-bold text-gray-900 mb-4">Explorez par cuisine</h2>
-      <p className="text-gray-600">Découvrez une variété de saveurs du Maroc et du monde entier</p>
-    </div>
-    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 ml-16">
-            {cuisines.length === 0 && !error && <p>Chargement des cuisines...</p>}
-            {error && <p className="text-red-500">{error}</p>}
-            {cuisines.map((cuisine) => (
-              <Link key={cuisine.name} href={`/restaurants?cuisine=${encodeURIComponent(cuisine.name)}`}>
-                <Card className="hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-2 hover:border-purple-200">
-                  <CardContent className="p-6 text-center">
-                    <div className="text-4xl mb-3">
-                      {cuisineIcons[cuisine.name] || "🍽️"}
-                    </div>
-                    <h3 className="font-semibold text-gray-900 mb-1">{cuisine.name}</h3>
-                    <Badge variant="secondary" className="bg-gray-100 text-gray-700">Voir les restaurants</Badge>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Explorez par cuisine</h2>
+            <p className="text-gray-600">Découvrez une variété de saveurs du Maroc et du monde entier</p>
           </div>
-  </div>
-</section>
 
+          {loadingCuisines && (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
+            </div>
+          )}
+
+          {!loadingCuisines && errorCuisines && (
+            <p className="text-red-500 text-center mb-6">{errorCuisines}</p>
+          )}
+
+          {!loadingCuisines && !errorCuisines && cuisines.length === 0 && (
+            <p className="text-center mb-6">Aucune cuisine trouvée</p>
+          )}
+
+          {!loadingCuisines && !errorCuisines && cuisines.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 ml-16">
+              {cuisines.map((cuisine) => (
+                <Link key={cuisine.name} href={`/restaurants?cuisine=${encodeURIComponent(cuisine.name)}`}>
+                  <Card className="hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-2 hover:border-purple-200">
+                    <CardContent className="p-6 text-center">
+                      <div className="text-4xl mb-3">{cuisineIcons[cuisine.name] || "🍽️"}</div>
+                      <h3 className="font-semibold text-gray-900 mb-1">{cuisine.name}</h3>
+                      <Badge variant="secondary" className="bg-gray-100 text-gray-700">
+                        Voir les restaurants
+                      </Badge>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Featured Restaurants Section */}
       <section className="py-16 bg-gradient-to-br from-gray-50 to-white">
@@ -213,76 +258,85 @@ export default function HomePage() {
             <p className="text-gray-600">Les favoris de nos clients à Casablanca</p>
           </div>
 
-          {loading && <p>Chargement des restaurants...</p>}
-          {!loading && error && <p className="text-red-500 mb-8">{error}</p>}
+          {loadingRestaurants && (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
+            </div>
+          )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {restaurants.map((restaurant) => (
-              <Link key={restaurant.id} href={`/restaurant/${restaurant.id}`}>
-                <Card className="hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer overflow-hidden border-0 shadow-lg">
-                  <div className="relative">
-                    <Image
-                      src={restaurant.logo || "/placeholder.svg"}
-                      alt={restaurant.restaurantName}
-                      width={300}
-                      height={200}
-                      className="w-full h-48 object-cover"
-                    />
-                    <div className="absolute top-4 right-4">
-                      <Badge
-                        variant={restaurant.isOpen ? "default" : "secondary"}
-                        className="bg-white/90 text-gray-900"
-                      >
-                        {restaurant.isOpen ? "Ouvert" : "Fermé"}
-                      </Badge>
-                    </div>
-                    {restaurant.promotion && (
-                      <div className="absolute bottom-4 left-4 right-4">
-                        <Badge variant="destructive" className="w-full justify-center bg-red-500">
-                          🎉 {restaurant.promotion}
+          {!loadingRestaurants && errorRestaurants && (
+            <p className="text-red-500 mb-8 text-center">{errorRestaurants}</p>
+          )}
+
+          {!loadingRestaurants && !errorRestaurants && restaurants.length === 0 && (
+            <p className="text-center mb-8">Aucun restaurant trouvé</p>
+          )}
+
+          {!loadingRestaurants && !errorRestaurants && restaurants.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {restaurants.map((restaurant) => (
+                <Link key={restaurant.id} href={`/restaurant/${restaurant.id}`}>
+                  <Card className="hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer overflow-hidden border-0 shadow-lg">
+                    <div className="relative">
+                      <Image
+                        src={restaurant.logo || "/placeholder.svg"}
+                        alt={restaurant.restaurantName}
+                        width={300}
+                        height={200}
+                        className="w-full h-48 object-cover"
+                      />
+                      <div className="absolute top-4 right-4">
+                        <Badge
+                          variant={restaurant.isOpen ? "default" : "secondary"}
+                          className="bg-white/90 text-gray-900"
+                        >
+                          {restaurant.isOpen ? "Ouvert" : "Fermé"}
                         </Badge>
                       </div>
-                    )}
-                  </div>
-
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-xl">{restaurant.restaurantName}</CardTitle>
-                      <div className="flex items-center space-x-1">
-  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-  <span className="font-medium">
-    {typeof restaurant.averageRating === "number"
-      ? restaurant.averageRating.toFixed(1)
-      : "N/A"}
-  </span>
-  <span className="text-sm text-gray-500">({restaurant.reviewCount})</span>
-</div>
-
-                    </div>
-                    <CardDescription className="text-gray-600">{restaurant.description}</CardDescription>
-                  </CardHeader>
-
-                  <CardContent className="pt-0">
-                    <div className="flex items-center justify-between text-sm text-gray-500">
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-1">
-                          <Clock className="h-4 w-4" />
-                          <span>{restaurant.deliveryTime || "30-40 min"}</span>
+                      {restaurant.promotion && (
+                        <div className="absolute bottom-4 left-4 right-4">
+                          <Badge variant="destructive" className="w-full justify-center bg-red-500">
+                            🎉 {restaurant.promotion}
+                          </Badge>
                         </div>
+                      )}
+                    </div>
+
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-xl">{restaurant.restaurantName}</CardTitle>
                         <div className="flex items-center space-x-1">
-                          <MapPin className="h-4 w-4" />
-                          <span>{restaurant.city || "Casablanca"}</span>
+                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          <span className="font-medium">
+                            {typeof restaurant.averageRating === "number"
+                              ? restaurant.averageRating.toFixed(1)
+                              : "N/A"}
+                          </span>
+                          <span className="text-sm text-gray-500">({restaurant.reviewCount})</span>
                         </div>
                       </div>
-                      <Badge variant="outline" className="text-purple-600 border-purple-200">
-                        {restaurant.cuisines?.[0]?.name || ""}
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
+                      <CardDescription className="text-gray-600">{restaurant.description}</CardDescription>
+                    </CardHeader>
+
+                    <CardContent className="pt-0">
+                      <div className="flex items-center justify-between text-sm text-gray-500">
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center space-x-1">
+                            <Clock className="h-4 w-4" />
+                            <span>{restaurant.deliveryTime || "30-40 min"}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <MapPin className="h-4 w-4" />
+                            <span>{restaurant.city || "Casablanca"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
 
           <div className="text-center mt-12">
             <Link href="/restaurants">

@@ -73,7 +73,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           restaurantName: true,
           name: true,
           logo: true,
-          cuisines: {
+          cuisine: {
             select: {
               name: true,
             },

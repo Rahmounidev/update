@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next"
-import { prisma } from "@/lib/db"
+import { prisma } from "@/lib/prisma"  // assure-toi que le chemin est correct
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
@@ -19,9 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       include: {
         dishes: {
           where: { isAvailable: true },
-          include: {
-            categories: true,
-          },
+          include: { categories: true },
           orderBy: { name: "asc" },
         },
         reviews: {
@@ -38,8 +36,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             startDate: { lte: now },
             endDate: { gte: now },
           },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            type: true,
+            value: true,
+            code: true,
+          },
         },
-        cuisines: { select: { name: true } },
+        cuisine: { select: { id: true, name: true } }, // relation many-to-many
       },
     })
 
@@ -47,11 +53,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ message: "Restaurant non trouvé" })
     }
 
-    const ratings = restaurant.reviews.map((r: { rating: any }) => r.rating)
-    const averageRating = ratings.length > 0 ? ratings.reduce((sum: any, r: any) => sum + r, 0) / ratings.length : 0
+    // Calcul de la note moyenne
+    const ratings = restaurant.reviews.map(r => r.rating)
+    const averageRating = ratings.length > 0 ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length : 0
 
-    const categoriesMap = new Map()
-    restaurant.dishes.forEach((dish: { categories: { name: string; id: any }; id: any; name: any; description: any; price: any; image: any; preparationTime: any; ingredients: any; allergens: any; calories: any; isVegetarian: any; isVegan: any; isGlutenFree: any }) => {
+    // Regrouper les plats par catégorie
+    const categoriesMap = new Map<string, any>()
+    restaurant.dishes.forEach(dish => {
       const categoryName = dish.categories?.name || "Autres"
       if (!categoriesMap.has(categoryName)) {
         categoriesMap.set(categoryName, {
@@ -85,7 +93,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         name: restaurant.name,
         description: restaurant.description,
         logo: restaurant.logo,
-        cuisines: restaurant.cuisines.map((c: { name: any }) => c.name),
+        cuisines: restaurant.cuisine.map(c => ({ id: c.id, name: c.name })),
         city: restaurant.city,
         address: restaurant.address,
         phone: restaurant.phone,
@@ -97,7 +105,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         averageRating: Math.round(averageRating * 10) / 10,
         reviewCount: ratings.length,
         menu,
-        reviews: restaurant.reviews.map((review: { id: any; rating: any; comment: any; response: any; createdAt: any; customers: { name: any } }) => ({
+        reviews: restaurant.reviews.map(review => ({
           id: review.id,
           rating: review.rating,
           comment: review.comment,

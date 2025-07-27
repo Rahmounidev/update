@@ -1,68 +1,139 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
+import { useState, useEffect } from "react";
+import { ArrowLeft, CreditCard, MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Link from "next/link";
+import Image from "next/image";
+import Footer from "@/components/footer";
 
-import { useState } from "react"
-import { ArrowLeft, CreditCard, MapPin, Clock, Phone } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Textarea } from "@/components/ui/textarea"
-import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import Link from "next/link"
-import Image from "next/image"
-import Footer from "@/components/footer"
+interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  restaurant: string;
+}
 
 export default function CheckoutPage() {
-  const [paymentMethod, setPaymentMethod] = useState("card")
-  const [deliveryMethod, setDeliveryMethod] = useState("delivery")
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [paymentMethod, setPaymentMethod] = useState("card");
+  const [deliveryMethod, setDeliveryMethod] = useState("delivery");
+  const [loading, setLoading] = useState(false);
+
   const [orderData, setOrderData] = useState({
-    // Delivery info
     address: "",
     city: "",
     postalCode: "",
     phone: "",
     deliveryInstructions: "",
-
-    // Payment info
     cardNumber: "",
     expiryDate: "",
     cvv: "",
     cardName: "",
-
-    // Billing address
     billingAddress: "",
     billingCity: "",
     billingPostalCode: "",
-  })
+  });
 
-  const orderItems = [
-    {
-      name: "Pizza Margherita",
-      quantity: 2,
-      price: 31.8,
-    },
-    {
-      name: "Spaghetti Carbonara",
-      quantity: 1,
-      price: 13.5,
-    },
-  ]
+  // Vérifier la session utilisateur
+  const checkSession = async () => {
+    try {
+      const res = await fetch("/api/session", { credentials: "include" });
+      if (!res.ok) return null;
+      const data = await res.json();
+      console.log("SESSION RESPONSE:", data);
+      return data?.id || data?.email ? data : null;
+    } catch (err) {
+      console.error("Erreur checkSession:", err);
+      return null;
+    }
+  };
 
-  const subtotal = 45.3
-  const deliveryFee = 2.5
-  const total = 47.8
+  // Charger le panier depuis localStorage
+  useEffect(() => {
+    const storedCart = localStorage.getItem("cart");
+    if (storedCart) {
+      setCartItems(JSON.parse(storedCart));
+    }
+  }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // Logique de traitement de la commande
-    console.log("Order submitted:", { paymentMethod, deliveryMethod, orderData })
-    // Redirection vers la page de confirmation
-    window.location.href = "/order-confirmation"
-  }
+  // Calculs totaux
+  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const deliveryFee = deliveryMethod === "delivery" ? 2.5 : 0;
+  const total = subtotal + deliveryFee;
+
+  // Soumission commande
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (cartItems.length === 0) {
+      alert("Votre panier est vide");
+      return;
+    }
+
+    const session = await checkSession();
+    if (!session) {
+      alert("Veuillez vous connecter pour finaliser votre commande.");
+      window.location.href = "/login";
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Construction adresse selon mode de livraison ou retrait
+      const deliveryAddress =
+        deliveryMethod === "delivery"
+          ? `${orderData.address}, ${orderData.city} ${orderData.postalCode}`
+          : "Retrait en magasin";
+
+      const orderPayload = {
+        items: cartItems.map((item) => ({
+          dishId: item.id,
+          quantity: item.quantity,
+          notes: "", // tu peux ajouter une gestion des notes plus tard
+        })),
+        deliveryAddress,
+        notes: orderData.deliveryInstructions,
+        paymentMethod: paymentMethod.toUpperCase(),
+      };
+
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(orderPayload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Erreur API:", data);
+        throw new Error(data.message || "Erreur lors de la création de la commande.");
+      }
+
+      console.log("Commande créée:", data.order);
+
+      // Vider le panier localStorage après commande réussie
+      localStorage.removeItem("cart");
+
+      window.location.href = "/orders";
+    } catch (error: any) {
+      console.error("Erreur handleSubmit:", error);
+      alert(error.message || "Impossible de finaliser la commande.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -77,7 +148,7 @@ export default function CheckoutPage() {
                   Retour au panier
                 </Button>
               </Link>
-              <Image src="/images/droovo-logo.png" alt="Droovo" width={120} height={40} className="h-8 w-auto" />
+              <Image src="/droovo-logo.png" alt="Droovo" width={120} height={40} className="h-8 w-auto" />
             </div>
           </div>
         </div>
@@ -85,10 +156,10 @@ export default function CheckoutPage() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Checkout Form */}
+          {/* Formulaire checkout */}
           <div className="lg:col-span-2">
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Delivery Method */}
+              {/* Méthode livraison */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
@@ -110,7 +181,7 @@ export default function CheckoutPage() {
                 </CardContent>
               </Card>
 
-              {/* Delivery Address */}
+              {/* Adresse livraison (visible si livraison) */}
               {deliveryMethod === "delivery" && (
                 <Card>
                   <CardHeader>
@@ -173,35 +244,7 @@ export default function CheckoutPage() {
                 </Card>
               )}
 
-              {/* Pickup Info */}
-              {deliveryMethod === "pickup" && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Clock className="h-5 w-5 mr-2" />
-                      Informations de retrait
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <p>
-                        <strong>Adresse du restaurant:</strong>
-                      </p>
-                      <p>Pizza Palace</p>
-                      <p>123 Boulevard Mohammed V, 20000 Casablanca</p>
-                      <p className="flex items-center">
-                        <Phone className="h-4 w-4 mr-1" />
-                        +212 5 22 12 34 56
-                      </p>
-                      <p>
-                        <strong>Temps de préparation estimé:</strong> 25-35 minutes
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Payment Method */}
+              {/* Mode de paiement */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
@@ -277,13 +320,13 @@ export default function CheckoutPage() {
                 </CardContent>
               </Card>
 
-              <Button type="submit" className="w-full" size="lg">
-                Confirmer la commande - {total.toFixed(2)}DH
+              <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                {loading ? "Traitement..." : `Confirmer la commande - ${total.toFixed(2)} DH`}
               </Button>
             </form>
           </div>
 
-          {/* Order Summary */}
+          {/* Récapitulatif */}
           <div className="lg:col-span-1">
             <Card className="sticky top-4">
               <CardHeader>
@@ -291,28 +334,32 @@ export default function CheckoutPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
-                  {orderItems.map((item, index) => (
-                    <div key={index} className="flex justify-between">
-                      <div>
-                        <p className="font-medium">{item.name}</p>
-                        <p className="text-sm text-gray-600">Quantité: {item.quantity}</p>
+                  {cartItems.length === 0 ? (
+                    <p className="text-gray-500">Votre panier est vide.</p>
+                  ) : (
+                    cartItems.map((item) => (
+                      <div key={item.id} className="flex justify-between">
+                        <div>
+                          <p className="font-medium">{item.name}</p>
+                          <p className="text-sm text-gray-600">Quantité: {item.quantity}</p>
+                        </div>
+                        <span>{(item.price * item.quantity).toFixed(2)} DH</span>
                       </div>
-                      <span>{item.price.toFixed(2)}DH</span>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
 
                 <Separator />
 
                 <div className="flex justify-between">
                   <span>Sous-total</span>
-                  <span>{subtotal.toFixed(2)}DH</span>
+                  <span>{subtotal.toFixed(2)} DH</span>
                 </div>
 
                 {deliveryMethod === "delivery" && (
                   <div className="flex justify-between">
                     <span>Frais de livraison</span>
-                    <span>{deliveryFee.toFixed(2)}DH</span>
+                    <span>{deliveryFee.toFixed(2)} DH</span>
                   </div>
                 )}
 
@@ -320,33 +367,15 @@ export default function CheckoutPage() {
 
                 <div className="flex justify-between font-bold text-lg">
                   <span>Total</span>
-                  <span>{total.toFixed(2)}DH</span>
-                </div>
-
-                <div className="text-sm text-gray-600 space-y-1">
-                  <p>
-                    <strong>Restaurant:</strong> Pizza Palace
-                  </p>
-                  <p>
-                    <strong>Temps estimé:</strong> 25-35 minutes
-                  </p>
-                  {deliveryMethod === "delivery" && (
-                    <p>
-                      <strong>Mode:</strong> Livraison
-                    </p>
-                  )}
-                  {deliveryMethod === "pickup" && (
-                    <p>
-                      <strong>Mode:</strong> À emporter
-                    </p>
-                  )}
+                  <span>{total.toFixed(2)} DH</span>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
+
       <Footer />
     </div>
-  )
+  );
 }

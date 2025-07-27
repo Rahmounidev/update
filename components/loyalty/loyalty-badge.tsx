@@ -1,15 +1,19 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Star, Gift, Trophy, Crown } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 
 interface LoyaltyBadgeProps {
-  points: number
-  totalEarned: number
   size?: "sm" | "md" | "lg"
   showPoints?: boolean
   clickable?: boolean
+}
+
+interface LoyaltyData {
+  currentPoints: number
+  totalEarned: number
 }
 
 const loyaltyLevels = [
@@ -20,22 +24,44 @@ const loyaltyLevels = [
 ]
 
 export default function LoyaltyBadge({
-  points,
-  totalEarned,
   size = "md",
   showPoints = true,
   clickable = true,
 }: LoyaltyBadgeProps) {
-  const getCurrentLevel = () => {
+  const [loyaltyData, setLoyaltyData] = useState<LoyaltyData | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchLoyaltyData() {
+      try {
+        const res = await fetch("/api/loyalty")
+        if (!res.ok) throw new Error("Erreur de récupération des points")
+        const data = await res.json()
+        setLoyaltyData({
+          currentPoints: data.currentPoints || 0,
+          totalEarned: data.totalEarned || 0,
+        })
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchLoyaltyData()
+  }, [])
+
+  const getCurrentLevel = (total: number) => {
     return (
       loyaltyLevels
         .slice()
         .reverse()
-        .find((level) => totalEarned >= level.minPoints) || loyaltyLevels[0]
+        .find((level) => total >= level.minPoints) || loyaltyLevels[0]
     )
   }
 
-  const currentLevel = getCurrentLevel()
+  if (loading) return null // On peut afficher un skeleton si besoin
+
+  const currentLevel = getCurrentLevel(loyaltyData?.totalEarned || 0)
   const IconComponent = currentLevel.icon
 
   const sizeClasses = {
@@ -58,7 +84,7 @@ export default function LoyaltyBadge({
           variant="secondary"
           className={`bg-purple-100 text-purple-700 ${clickable ? "hover:shadow-md transition-shadow cursor-pointer" : ""}`}
         >
-          {points} pts
+          {loyaltyData?.currentPoints ?? 0} pts
         </Badge>
       )}
     </div>

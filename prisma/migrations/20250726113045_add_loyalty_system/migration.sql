@@ -18,13 +18,21 @@ CREATE TABLE `users` (
     `hours` VARCHAR(191) NULL,
     `isOpen` BOOLEAN NOT NULL DEFAULT true,
     `minimumOrder` DECIMAL(10, 2) NULL,
-    `cuisine` VARCHAR(191) NULL,
     `role` ENUM('ADMIN', 'RESTAURANT', 'CUSTOMER') NOT NULL DEFAULT 'RESTAURANT',
-    `notifications` JSON NULL,
-    `security` JSON NULL,
+    `notifications` LONGTEXT NULL,
+    `security` LONGTEXT NULL,
     `customMessage` VARCHAR(191) NULL,
 
     UNIQUE INDEX `users_email_key`(`email`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `cuisine` (
+    `id` VARCHAR(191) NOT NULL,
+    `name` VARCHAR(191) NOT NULL,
+
+    UNIQUE INDEX `cuisine_name_key`(`name`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -43,6 +51,7 @@ CREATE TABLE `customers` (
     `userId` VARCHAR(191) NULL,
 
     UNIQUE INDEX `customers_email_key`(`email`),
+    INDEX `customers_userId_fkey`(`userId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -52,7 +61,7 @@ CREATE TABLE `sessions` (
     `sessionId` VARCHAR(191) NOT NULL,
     `userId` VARCHAR(191) NULL,
     `customerId` VARCHAR(191) NULL,
-    `data` JSON NOT NULL,
+    `data` LONGTEXT NOT NULL,
     `expiresAt` DATETIME(3) NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
@@ -60,6 +69,8 @@ CREATE TABLE `sessions` (
     UNIQUE INDEX `sessions_sessionId_key`(`sessionId`),
     INDEX `sessions_sessionId_idx`(`sessionId`),
     INDEX `sessions_expiresAt_idx`(`expiresAt`),
+    INDEX `sessions_customerId_fkey`(`customerId`),
+    INDEX `sessions_userId_fkey`(`userId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -68,7 +79,7 @@ CREATE TABLE `roles` (
     `id` VARCHAR(191) NOT NULL,
     `name` VARCHAR(191) NOT NULL,
     `description` VARCHAR(191) NULL,
-    `permissions` JSON NULL,
+    `permissions` LONGTEXT NULL,
     `isActive` BOOLEAN NOT NULL DEFAULT true,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
@@ -83,6 +94,7 @@ CREATE TABLE `user_roles` (
     `userId` VARCHAR(191) NOT NULL,
     `roleId` VARCHAR(191) NOT NULL,
 
+    INDEX `user_roles_roleId_fkey`(`roleId`),
     UNIQUE INDEX `user_roles_userId_roleId_key`(`userId`, `roleId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -112,6 +124,7 @@ CREATE TABLE `categories` (
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
+    UNIQUE INDEX `categories_name_key`(`name`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -124,7 +137,7 @@ CREATE TABLE `dishes` (
     `image` VARCHAR(191) NULL,
     `isAvailable` BOOLEAN NOT NULL DEFAULT true,
     `preparationTime` INTEGER NULL,
-    `ingredients` JSON NULL,
+    `ingredients` LONGTEXT NULL,
     `allergens` VARCHAR(191) NULL,
     `calories` INTEGER NULL,
     `isVegetarian` BOOLEAN NOT NULL DEFAULT false,
@@ -135,6 +148,8 @@ CREATE TABLE `dishes` (
     `categoryId` VARCHAR(191) NOT NULL,
     `userId` VARCHAR(191) NOT NULL,
 
+    INDEX `dishes_categoryId_fkey`(`categoryId`),
+    INDEX `dishes_userId_fkey`(`userId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -158,6 +173,8 @@ CREATE TABLE `orders` (
     `userId` VARCHAR(191) NOT NULL,
 
     UNIQUE INDEX `orders_orderNumber_key`(`orderNumber`),
+    INDEX `orders_customerId_fkey`(`customerId`),
+    INDEX `orders_userId_fkey`(`userId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -170,6 +187,8 @@ CREATE TABLE `order_items` (
     `orderId` VARCHAR(191) NOT NULL,
     `dishId` VARCHAR(191) NOT NULL,
 
+    INDEX `order_items_dishId_fkey`(`dishId`),
+    INDEX `order_items_orderId_fkey`(`orderId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -185,6 +204,8 @@ CREATE TABLE `reviews` (
     `customerId` VARCHAR(191) NOT NULL,
     `userId` VARCHAR(191) NOT NULL,
 
+    INDEX `reviews_customerId_fkey`(`customerId`),
+    INDEX `reviews_userId_fkey`(`userId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -208,6 +229,7 @@ CREATE TABLE `promotions` (
     `userId` VARCHAR(191) NOT NULL,
 
     UNIQUE INDEX `promotions_code_key`(`code`),
+    INDEX `promotions_userId_fkey`(`userId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -246,6 +268,7 @@ CREATE TABLE `campagnes` (
     `updatedAt` DATETIME(3) NOT NULL,
     `userId` VARCHAR(191) NOT NULL,
 
+    INDEX `campagnes_userId_fkey`(`userId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -263,6 +286,8 @@ CREATE TABLE `reservations` (
     `customerId` VARCHAR(191) NOT NULL,
     `userId` VARCHAR(191) NOT NULL,
 
+    INDEX `reservations_customerId_fkey`(`customerId`),
+    INDEX `reservations_userId_fkey`(`userId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -281,6 +306,7 @@ CREATE TABLE `payments` (
 
     UNIQUE INDEX `payments_transactionId_key`(`transactionId`),
     UNIQUE INDEX `payments_orderId_key`(`orderId`),
+    INDEX `payments_userId_fkey`(`userId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -302,20 +328,53 @@ CREATE TABLE `menu_settings` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- AddForeignKey
-ALTER TABLE `customers` ADD CONSTRAINT `customers_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+-- CreateTable
+CREATE TABLE `loyalty_points` (
+    `id` VARCHAR(191) NOT NULL,
+    `current` INTEGER NOT NULL DEFAULT 0,
+    `totalEarned` INTEGER NOT NULL DEFAULT 0,
+    `customerId` VARCHAR(191) NOT NULL,
+
+    UNIQUE INDEX `loyalty_points_customerId_key`(`customerId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `loyalty_transactions` (
+    `id` VARCHAR(191) NOT NULL,
+    `type` ENUM('earned', 'redeemed') NOT NULL,
+    `points` INTEGER NOT NULL,
+    `description` VARCHAR(191) NOT NULL,
+    `orderId` VARCHAR(191) NULL,
+    `date` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `customerId` VARCHAR(191) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `_usercuisines` (
+    `A` VARCHAR(191) NOT NULL,
+    `B` VARCHAR(191) NOT NULL,
+
+    UNIQUE INDEX `_usercuisines_AB_unique`(`A`, `B`),
+    INDEX `_usercuisines_B_index`(`B`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- AddForeignKey
-ALTER TABLE `sessions` ADD CONSTRAINT `sessions_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `customers` ADD CONSTRAINT `customers_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `sessions` ADD CONSTRAINT `sessions_customerId_fkey` FOREIGN KEY (`customerId`) REFERENCES `customers`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `user_roles` ADD CONSTRAINT `user_roles_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `sessions` ADD CONSTRAINT `sessions_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `user_roles` ADD CONSTRAINT `user_roles_roleId_fkey` FOREIGN KEY (`roleId`) REFERENCES `roles`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `user_roles` ADD CONSTRAINT `user_roles_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `dishes` ADD CONSTRAINT `dishes_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `categories`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -330,10 +389,10 @@ ALTER TABLE `orders` ADD CONSTRAINT `orders_customerId_fkey` FOREIGN KEY (`custo
 ALTER TABLE `orders` ADD CONSTRAINT `orders_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `order_items` ADD CONSTRAINT `order_items_orderId_fkey` FOREIGN KEY (`orderId`) REFERENCES `orders`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `order_items` ADD CONSTRAINT `order_items_dishId_fkey` FOREIGN KEY (`dishId`) REFERENCES `dishes`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `order_items` ADD CONSTRAINT `order_items_dishId_fkey` FOREIGN KEY (`dishId`) REFERENCES `dishes`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `order_items` ADD CONSTRAINT `order_items_orderId_fkey` FOREIGN KEY (`orderId`) REFERENCES `orders`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `reviews` ADD CONSTRAINT `reviews_customerId_fkey` FOREIGN KEY (`customerId`) REFERENCES `customers`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -361,3 +420,15 @@ ALTER TABLE `payments` ADD CONSTRAINT `payments_orderId_fkey` FOREIGN KEY (`orde
 
 -- AddForeignKey
 ALTER TABLE `payments` ADD CONSTRAINT `payments_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `loyalty_points` ADD CONSTRAINT `loyalty_points_customerId_fkey` FOREIGN KEY (`customerId`) REFERENCES `customers`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `loyalty_transactions` ADD CONSTRAINT `loyalty_transactions_customerId_fkey` FOREIGN KEY (`customerId`) REFERENCES `customers`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `_usercuisines` ADD CONSTRAINT `_usercuisines_A_fkey` FOREIGN KEY (`A`) REFERENCES `cuisine`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `_usercuisines` ADD CONSTRAINT `_usercuisines_B_fkey` FOREIGN KEY (`B`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

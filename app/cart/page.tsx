@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ArrowLeft, Minus, Plus, Trash2, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,49 +10,49 @@ import Link from "next/link"
 import Image from "next/image"
 import Footer from "@/components/footer"
 
-// Mock data pour le panier
-const initialCartItems = [
-  {
-    id: 1,
-    name: "Pizza Margherita",
-    restaurant: "Pizza Palace",
-    price: 159,
-    quantity: 2,
-    options: "Grande, Pâte fine",
-    extras: "Olives, Champignons",
-    specialInstructions: "Bien cuite",
-  },
-  {
-    id: 2,
-    name: "Spaghetti Carbonara",
-    restaurant: "Pizza Palace",
-    price: 135,
-    quantity: 1,
-    options: "Portion normale",
-    extras: "Parmesan supplémentaire",
-    specialInstructions: "",
-  },
-]
+interface CartItem {
+  id: string
+  name: string
+  restaurant: string
+  price: number
+  quantity: number
+  options?: string
+  extras?: string
+  specialInstructions?: string
+}
 
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState(initialCartItems)
+  const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [promoCode, setPromoCode] = useState("")
   const [discount, setDiscount] = useState(0)
 
-  const updateQuantity = (id: number, newQuantity: number) => {
+  // Charger le panier depuis localStorage
+  useEffect(() => {
+    const storedCart = localStorage.getItem("cart")
+    if (storedCart) {
+      setCartItems(JSON.parse(storedCart))
+    }
+  }, [])
+
+  // Sauvegarder le panier dans localStorage
+  const saveCart = (items: CartItem[]) => {
+    setCartItems(items)
+    localStorage.setItem("cart", JSON.stringify(items))
+  }
+
+  const updateQuantity = (id: string, newQuantity: number) => {
     if (newQuantity === 0) {
-      setCartItems(cartItems.filter((item) => item.id !== id))
+      saveCart(cartItems.filter((item) => item.id !== id))
     } else {
-      setCartItems(cartItems.map((item) => (item.id === id ? { ...item, quantity: newQuantity } : item)))
+      saveCart(cartItems.map((item) => (item.id === id ? { ...item, quantity: newQuantity } : item)))
     }
   }
 
-  const removeItem = (id: number) => {
-    setCartItems(cartItems.filter((item) => item.id !== id))
+  const removeItem = (id: string) => {
+    saveCart(cartItems.filter((item) => item.id !== id))
   }
 
   const applyPromoCode = () => {
-    // Logique pour appliquer le code promo
     if (promoCode === "WELCOME10") {
       setDiscount(0.1) // 10% de réduction
     }
@@ -66,7 +66,6 @@ export default function CartPage() {
   if (cartItems.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50">
-        {/* Header */}
         <header className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
@@ -77,7 +76,7 @@ export default function CartPage() {
                     Retour
                   </Button>
                 </Link>
-                <Image src="/images/droovo-logo.png" alt="Droovo" width={120} height={40} className="h-8 w-auto" />
+                <Image src="/droovo-logo.png" alt="Droovo" width={120} height={40} className="h-8 w-auto" />
               </div>
             </div>
           </div>
@@ -108,7 +107,7 @@ export default function CartPage() {
                   Retour
                 </Button>
               </Link>
-              <Image src="/images/droovo-logo.png" alt="Droovo" width={120} height={40} className="h-8 w-auto" />
+              <Image src="/droovo-logo.png" alt="Droovo" width={120} height={40} className="h-8 w-auto" />
             </div>
           </div>
         </div>

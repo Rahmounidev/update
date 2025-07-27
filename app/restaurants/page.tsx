@@ -50,7 +50,7 @@ type Restaurant = {
   minimumOrder: number
   deliveryRadius: number
   customMessage: string | null
-  cuisines: { name: string }[]
+  cuisine: { name: string }[]
   promotions: { name: string }[]
   reviews: { rating: number }[]
   dishes: {
@@ -151,13 +151,13 @@ export default function RestaurantsPage() {
       const matchesSearch =
         restaurant.restaurantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         restaurant.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        restaurant.cuisines.some((c) =>
+        restaurant.cuisine.some((c) =>
           c.name.toLowerCase().includes(searchTerm.toLowerCase())
         )
 
       const matchesCuisine =
         selectedCuisine === "Tous" ||
-        restaurant.cuisines.some((c) => c.name === selectedCuisine)
+        restaurant.cuisine.some((c) => c.name === selectedCuisine)
 
       // Ici, location, priceRange, maxDistance non gérés dans ton backend, tu peux retirer ou gérer côté frontend
 

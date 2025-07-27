@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Star, Gift, Trophy, Crown, Zap, Clock, ShoppingBag } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState } from "react";
+import { Star, Gift, Trophy, Crown, Zap, Clock, ShoppingBag } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -15,169 +15,110 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 
 interface LoyaltyLevel {
-  name: string
-  minPoints: number
-  color: string
-  icon: any
-  benefits: string[]
-  multiplier: number
+  name: string;
+  minPoints: number;
+  color: string;
+  icon: any;
+  benefits: string[];
+  multiplier: number;
 }
 
 interface Reward {
-  id: string
-  name: string
-  description: string
-  pointsCost: number
-  type: "discount" | "free_delivery" | "free_item" | "cashback"
-  value: number
-  image: string
-  available: boolean
+  id: string;
+  name: string;
+  description: string;
+  pointsCost: number;
+  type: "discount" | "free_delivery" | "free_item" | "cashback";
+  value: number;
+  image: string;
+  available: boolean;
 }
 
 interface PointsTransaction {
-  id: string
-  type: "earned" | "redeemed"
-  points: number
-  description: string
-  date: string
-  orderId?: string
+  id: string;
+  type: "earned" | "redeemed";
+  points: number;
+  description: string;
+  date: string;
+  orderId?: string;
+}
+
+interface LoyaltySystemProps {
+  currentPoints: number;
+  totalEarned: number;
+  transactions: PointsTransaction[];
+  onRedeem?: () => void; // callback pour rafraîchir après échange
 }
 
 const loyaltyLevels: LoyaltyLevel[] = [
-  {
-    name: "Bronze",
-    minPoints: 0,
-    color: "text-amber-600",
-    icon: Star,
-    benefits: ["1 point par 10 DH", "Offres spéciales"],
-    multiplier: 1,
-  },
-  {
-    name: "Argent",
-    minPoints: 500,
-    color: "text-gray-500",
-    icon: Gift,
-    benefits: ["1.5x points", "Livraison gratuite mensuelle", "Support prioritaire"],
-    multiplier: 1.5,
-  },
-  {
-    name: "Or",
-    minPoints: 1500,
-    color: "text-yellow-500",
-    icon: Trophy,
-    benefits: ["2x points", "Livraison gratuite illimitée", "Accès aux nouveautés"],
-    multiplier: 2,
-  },
-  {
-    name: "Platine",
-    minPoints: 3000,
-    color: "text-purple-600",
-    icon: Crown,
-    benefits: ["3x points", "Réductions exclusives", "Service VIP", "Cadeaux d'anniversaire"],
-    multiplier: 3,
-  },
-]
+  { name: "Bronze", minPoints: 0, color: "text-amber-600", icon: Star, benefits: ["1 point par 10 DH", "Offres spéciales"], multiplier: 1 },
+  { name: "Argent", minPoints: 500, color: "text-gray-500", icon: Gift, benefits: ["1.5x points", "Livraison gratuite mensuelle", "Support prioritaire"], multiplier: 1.5 },
+  { name: "Or", minPoints: 1500, color: "text-yellow-500", icon: Trophy, benefits: ["2x points", "Livraison gratuite illimitée", "Accès aux nouveautés"], multiplier: 2 },
+  { name: "Platine", minPoints: 3000, color: "text-purple-600", icon: Crown, benefits: ["3x points", "Réductions exclusives", "Service VIP", "Cadeaux d'anniversaire"], multiplier: 3 },
+];
 
 const availableRewards: Reward[] = [
-  {
-    id: "1",
-    name: "Livraison gratuite",
-    description: "Livraison gratuite sur votre prochaine commande",
-    pointsCost: 100,
-    type: "free_delivery",
-    value: 25,
-    image: "/placeholder.svg?height=100&width=100",
-    available: true,
-  },
-  {
-    id: "2",
-    name: "Réduction 10%",
-    description: "10% de réduction sur votre prochaine commande",
-    pointsCost: 200,
-    type: "discount",
-    value: 10,
-    image: "/placeholder.svg?height=100&width=100",
-    available: true,
-  },
-  {
-    id: "3",
-    name: "Pizza gratuite",
-    description: "Pizza Margherita gratuite (valeur 129 DH)",
-    pointsCost: 400,
-    type: "free_item",
-    value: 129,
-    image: "/placeholder.svg?height=100&width=100",
-    available: true,
-  },
-  {
-    id: "4",
-    name: "Cashback 50 DH",
-    description: "50 DH de cashback sur votre compte",
-    pointsCost: 500,
-    type: "cashback",
-    value: 50,
-    image: "/placeholder.svg?height=100&width=100",
-    available: true,
-  },
-  {
-    id: "5",
-    name: "Réduction 20%",
-    description: "20% de réduction sur votre prochaine commande",
-    pointsCost: 600,
-    type: "discount",
-    value: 20,
-    image: "/placeholder.svg?height=100&width=100",
-    available: false,
-  },
-]
+  { id: "1", name: "Livraison gratuite", description: "Livraison gratuite sur votre prochaine commande", pointsCost: 100, type: "free_delivery", value: 25, image: "/placeholder.svg?height=100&width=100", available: true },
+  { id: "2", name: "Réduction 10%", description: "10% de réduction sur votre prochaine commande", pointsCost: 200, type: "discount", value: 10, image: "/placeholder.svg?height=100&width=100", available: true },
+  { id: "3", name: "Pizza gratuite", description: "Pizza Margherita gratuite (valeur 129 DH)", pointsCost: 400, type: "free_item", value: 129, image: "/placeholder.svg?height=100&width=100", available: true },
+  { id: "4", name: "Cashback 50 DH", description: "50 DH de cashback sur votre compte", pointsCost: 500, type: "cashback", value: 50, image: "/placeholder.svg?height=100&width=100", available: true },
+  { id: "5", name: "Réduction 20%", description: "20% de réduction sur votre prochaine commande", pointsCost: 600, type: "discount", value: 20, image: "/placeholder.svg?height=100&width=100", available: false },
+];
 
-interface LoyaltySystemProps {
-  currentPoints: number
-  totalEarned: number
-  transactions: PointsTransaction[]
-}
+export default function LoyaltySystem({ currentPoints, totalEarned, transactions, onRedeem }: LoyaltySystemProps) {
+  const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
+  const [loadingRedeem, setLoadingRedeem] = useState(false);
+  const [redeemError, setRedeemError] = useState<string | null>(null);
 
-export default function LoyaltySystem({ currentPoints, totalEarned, transactions }: LoyaltySystemProps) {
-  const [selectedReward, setSelectedReward] = useState<Reward | null>(null)
-
-  const getCurrentLevel = () => {
-    return (
-      loyaltyLevels
-        .slice()
-        .reverse()
-        .find((level) => totalEarned >= level.minPoints) || loyaltyLevels[0]
-    )
-  }
+  const getCurrentLevel = () =>
+    loyaltyLevels.slice().reverse().find((level) => totalEarned >= level.minPoints) || loyaltyLevels[0];
 
   const getNextLevel = () => {
-    const currentLevel = getCurrentLevel()
-    const currentIndex = loyaltyLevels.findIndex((level) => level.name === currentLevel.name)
-    return currentIndex < loyaltyLevels.length - 1 ? loyaltyLevels[currentIndex + 1] : null
-  }
+    const currentLevel = getCurrentLevel();
+    const currentIndex = loyaltyLevels.findIndex((level) => level.name === currentLevel.name);
+    return currentIndex < loyaltyLevels.length - 1 ? loyaltyLevels[currentIndex + 1] : null;
+  };
 
   const getProgressToNextLevel = () => {
-    const nextLevel = getNextLevel()
-    if (!nextLevel) return 100
+    const nextLevel = getNextLevel();
+    if (!nextLevel) return 100;
+    const currentLevel = getCurrentLevel();
+    const progress = ((totalEarned - currentLevel.minPoints) / (nextLevel.minPoints - currentLevel.minPoints)) * 100;
+    return Math.min(progress, 100);
+  };
 
-    const currentLevel = getCurrentLevel()
-    const progress = ((totalEarned - currentLevel.minPoints) / (nextLevel.minPoints - currentLevel.minPoints)) * 100
-    return Math.min(progress, 100)
-  }
+  const redeemReward = async (reward: Reward) => {
+    if (currentPoints < reward.pointsCost) return;
 
-  const redeemReward = (reward: Reward) => {
-    if (currentPoints >= reward.pointsCost) {
-      // Logique de rachat de récompense
-      console.log("Reward redeemed:", reward)
-      setSelectedReward(null)
+    setLoadingRedeem(true);
+    setRedeemError(null);
+
+    try {
+      const res = await fetch("/api/loyalty/redeem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rewardId: reward.id }),
+      });
+
+      if (!res.ok) throw new Error(`Erreur ${res.status}`);
+      const data = await res.json();
+      console.log("Reward redeemed:", data);
+
+      setSelectedReward(null);
+      if (onRedeem) onRedeem(); // refresh les données
+    } catch (err: any) {
+      setRedeemError(err.message || "Erreur inconnue");
+    } finally {
+      setLoadingRedeem(false);
     }
-  }
+  };
 
-  const currentLevel = getCurrentLevel()
-  const nextLevel = getNextLevel()
-  const progressToNext = getProgressToNextLevel()
+  const currentLevel = getCurrentLevel();
+  const nextLevel = getNextLevel();
+  const progressToNext = getProgressToNextLevel();
 
   return (
     <div className="space-y-6">
@@ -225,7 +166,9 @@ export default function LoyaltySystem({ currentPoints, totalEarned, transactions
           <TabsTrigger value="history">Historique</TabsTrigger>
         </TabsList>
 
+        {/* Rewards Tab */}
         <TabsContent value="rewards" className="space-y-4">
+          {redeemError && <p className="text-red-500 text-sm">{redeemError}</p>}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {availableRewards.map((reward) => (
               <Card key={reward.id} className={`${!reward.available ? "opacity-50" : ""}`}>
@@ -239,7 +182,7 @@ export default function LoyaltySystem({ currentPoints, totalEarned, transactions
                 <CardContent>
                   <div className="flex justify-between items-center">
                     <div className="text-sm text-gray-600">Valeur: {reward.value} DH</div>
-                    <Dialog>
+                    <Dialog open={selectedReward?.id === reward.id} onOpenChange={() => setSelectedReward(null)}>
                       <DialogTrigger asChild>
                         <Button
                           size="sm"
@@ -260,8 +203,11 @@ export default function LoyaltySystem({ currentPoints, totalEarned, transactions
                           <Button variant="outline" onClick={() => setSelectedReward(null)}>
                             Annuler
                           </Button>
-                          <Button onClick={() => selectedReward && redeemReward(selectedReward)}>
-                            Confirmer l'échange
+                          <Button
+                            disabled={loadingRedeem}
+                            onClick={() => selectedReward && redeemReward(selectedReward)}
+                          >
+                            {loadingRedeem ? "Échange..." : "Confirmer l'échange"}
                           </Button>
                         </DialogFooter>
                       </DialogContent>
@@ -273,11 +219,11 @@ export default function LoyaltySystem({ currentPoints, totalEarned, transactions
           </div>
         </TabsContent>
 
+        {/* Levels Tab */}
         <TabsContent value="levels" className="space-y-4">
-          {loyaltyLevels.map((level, index) => {
-            const isCurrentLevel = level.name === currentLevel.name
-            const isUnlocked = totalEarned >= level.minPoints
-
+          {loyaltyLevels.map((level) => {
+            const isCurrentLevel = level.name === currentLevel.name;
+            const isUnlocked = totalEarned >= level.minPoints;
             return (
               <Card key={level.name} className={`${isCurrentLevel ? "ring-2 ring-purple-500" : ""}`}>
                 <CardHeader>
@@ -311,10 +257,11 @@ export default function LoyaltySystem({ currentPoints, totalEarned, transactions
                   </div>
                 </CardContent>
               </Card>
-            )
+            );
           })}
         </TabsContent>
 
+        {/* History Tab */}
         <TabsContent value="history" className="space-y-4">
           {transactions.length === 0 ? (
             <Card>
@@ -367,5 +314,5 @@ export default function LoyaltySystem({ currentPoints, totalEarned, transactions
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

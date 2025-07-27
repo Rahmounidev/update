@@ -1,82 +1,91 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { MessageCircle, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { useState, useEffect } from "react";
+import { MessageCircle, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface WhatsAppNotificationProps {
-  orderId: string
-  status: string
-  restaurantName: string
-  estimatedTime?: string
+  orderId: string;
 }
 
-export default function WhatsAppNotification({
-  orderId,
-  status,
-  restaurantName,
-  estimatedTime,
-}: WhatsAppNotificationProps) {
-  const [isVisible, setIsVisible] = useState(false)
-  const [notifications, setNotifications] = useState<any[]>([])
+export default function WhatsAppNotification({ orderId }: WhatsAppNotificationProps) {
+  const [isVisible, setIsVisible] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
 
-  useEffect(() => {
-    // Simuler l'arrivée de notifications WhatsApp
-    const timer = setTimeout(() => {
+  // --- Fonction pour récupérer l'état réel de la commande ---
+  const fetchOrderStatus = async () => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}`);
+      if (!res.ok) throw new Error("Erreur lors de la récupération de la commande");
+
+      const data = await res.json();
+
       const newNotification = {
         id: Date.now(),
-        orderId,
-        status,
-        restaurantName,
-        estimatedTime,
+        orderId: data.orderId,
+        status: data.status.toLowerCase(), // en minuscule pour le switch
+        restaurantName: data.restaurantName,
+        estimatedTime: data.estimatedTime,
         timestamp: new Date().toLocaleTimeString(),
-        message: getStatusMessage(status),
-      }
-      setNotifications((prev) => [newNotification, ...prev.slice(0, 2)])
-      setIsVisible(true)
-    }, 2000)
+        message: getStatusMessage(data.status.toLowerCase(), data.orderId, data.restaurantName, data.estimatedTime),
+      };
 
-    return () => clearTimeout(timer)
-  }, [status, orderId, restaurantName, estimatedTime])
+      setNotifications((prev) => [newNotification, ...prev.slice(0, 2)]);
+      setIsVisible(true);
+    } catch (err) {
+      console.error("❌ Erreur récupération commande:", err);
+    }
+  };
 
-  const getStatusMessage = (status: string) => {
+  useEffect(() => {
+    fetchOrderStatus(); // premier appel immédiat
+    const interval = setInterval(fetchOrderStatus, 10000); // actualiser toutes les 10 sec
+    return () => clearInterval(interval);
+  }, [orderId]);
+
+  // --- Génération des messages selon le statut ---
+  const getStatusMessage = (status: string, orderId: string, restaurantName: string, estimatedTime?: string) => {
     switch (status) {
       case "confirmed":
-        return `✅ Votre commande #${orderId} chez ${restaurantName} a été confirmée !`
-      case "in_progress":
-        return `👨‍🍳 Votre commande #${orderId} est en préparation. Temps estimé: ${estimatedTime}`
+        return `✅ Votre commande #${orderId} chez ${restaurantName} a été confirmée !`;
+      case "preparing":
+        return `👨‍🍳 Votre commande #${orderId} est en préparation. Temps estimé : ${estimatedTime}`;
       case "ready":
-        return `🎉 Votre commande #${orderId} est prête ! Vous pouvez venir la récupérer.`
+        return `🎉 Votre commande #${orderId} est prête ! Vous pouvez venir la récupérer.`;
       case "delivered":
-        return `✨ Votre commande #${orderId} a été livrée avec succès ! Bon appétit !`
+        return `✨ Votre commande #${orderId} a été livrée avec succès ! Bon appétit !`;
       default:
-        return `📱 Mise à jour de votre commande #${orderId}`
+        return `📱 Mise à jour de votre commande #${orderId}`;
     }
-  }
+  };
 
+  // --- Icônes pour les statuts ---
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "confirmed":
-        return "✅"
-      case "in_progress":
-        return "👨‍🍳"
+        return "✅";
+      case "preparing":
+        return "👨‍🍳";
       case "ready":
-        return "🎉"
+        return "🎉";
       case "delivered":
-        return "✨"
+        return "✨";
       default:
-        return "📱"
+        return "📱";
     }
-  }
+  };
 
-  if (!isVisible || notifications.length === 0) return null
+  if (!isVisible || notifications.length === 0) return null;
 
   return (
     <div className="fixed top-20 right-4 z-50 space-y-2 max-w-sm">
       {notifications.map((notification) => (
-        <Card key={notification.id} className="bg-green-50 border-green-200 shadow-lg animate-in slide-in-from-right">
+        <Card
+          key={notification.id}
+          className="bg-green-50 border-green-200 shadow-lg animate-in slide-in-from-right"
+        >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -88,7 +97,9 @@ export default function WhatsAppNotification({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setNotifications((prev) => prev.filter((n) => n.id !== notification.id))}
+                onClick={() =>
+                  setNotifications((prev) => prev.filter((n) => n.id !== notification.id))
+                }
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -106,5 +117,5 @@ export default function WhatsAppNotification({
         </Card>
       ))}
     </div>
-  )
+  );
 }

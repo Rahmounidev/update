@@ -1,55 +1,44 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "@/lib/prisma"; // Assurez-vous que le chemin vers votre fichier prisma est correct
+import { prisma } from "@/lib/prisma";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     const { cuisine, search, isOpen, minRating } = req.query;
 
-    // Initialiser les filtres de recherche
     const filters: any = {
       role: "RESTAURANT",
-      isActive: true, // Filtrer uniquement les restaurants actifs
+      isActive: true,
     };
 
-    // Filtrer par restaurants ouverts
     if (isOpen === "true") {
       filters.isOpen = true;
     }
 
-    // Filtrer par cuisine spécifique
     if (cuisine && cuisine !== "Tous") {
-      filters.cuisines = {
+      filters.cuisine = {
         some: {
-          name: {
-            contains: String(cuisine),
-            // mode: "insensitive", // supprimé car non supporté
-          },
+          name: { contains: String(cuisine) }, // mode supprimé
         },
       };
     }
 
-    // Filtrer par évaluation minimale
     if (minRating) {
       filters.reviews = {
         some: {
-          rating: {
-            gte: parseFloat(minRating as string), // Convertir la note minimale en nombre
-          },
+          rating: { gte: parseFloat(minRating as string) },
         },
       };
     }
 
-    // Filtrer par recherche de texte (nom, cuisine, description)
     if (search) {
       filters.OR = [
-        { restaurantName: { contains: String(search) /* , mode: "insensitive" supprimé */ } },
-        { description: { contains: String(search) /* , mode: "insensitive" supprimé */ } },
-        { cuisines: { some: { name: { contains: String(search) /* , mode: "insensitive" supprimé */ } } } },
+        { restaurantName: { contains: String(search) } },
+        { description: { contains: String(search) } },
+        { cuisine: { some: { name: { contains: String(search) } } } }, // 'cuisines' -> 'cuisine' (ton modèle)
       ];
     }
 
-    // Recherche des restaurants en fonction des filtres
-    const restaurants = await prisma.users.findMany({
+    const restaurantsRaw = await prisma.users.findMany({
       where: filters,
       select: {
         id: true,
@@ -65,45 +54,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         minimumOrder: true,
         deliveryRadius: true,
         customMessage: true,
-        cuisines: {
-          select: {
-            name: true,
-          },
+        cuisine: {
+          select: { name: true },
         },
         promotions: {
-          where: {
-            isActive: true,
-          },
-          select: {
-            name: true,
-          },
+          where: { isActive: true },
+          select: { name: true },
         },
         reviews: {
-          select: {
-            rating: true,
-          },
+          select: { rating: true },
         },
         dishes: {
-          where: {
-            isAvailable: true, // Filtrer les plats disponibles
-          },
-          select: {
-            id: true,
-            name: true,
-            price: true,
-            image: true,
-          },
-          take: 3, // Limiter à 3 plats
+          where: { isAvailable: true },
+          select: { id: true, name: true, price: true, image: true },
+          take: 3,
         },
       },
     });
 
-    // Retourner les restaurants filtrés
+    // Calcul de la note moyenne
+    const restaurants = restaurantsRaw.map((restaurant) => {
+      const ratings = restaurant.reviews.map((r) => r.rating);
+      const averageRating =
+        ratings.length > 0
+          ? Math.round((ratings.reduce((sum, r) => sum + r, 0) / ratings.length) * 10) / 10
+          : 0;
+
+      return {
+        ...restaurant,
+        averageRating,
+        reviewCount: ratings.length,
+      };
+    });
+
     res.status(200).json({ restaurants });
   } catch (error) {
     console.error("Restaurants error:", error);
-    res.status(500).json({
-      message: "Erreur lors de la récupération des restaurants",
-    });
+    res.status(500).json({ message: "Erreur lors de la récupération des restaurants" });
   }
 }

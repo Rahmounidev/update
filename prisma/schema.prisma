@@ -7,10 +7,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Table des utilisateurs (restaurants/admins)
 model users {
-  id             String    @id @default(cuid())
-  email          String    @unique
+  id             String           @id @default(cuid())
+  email          String           @unique
   password       String
   name           String
   phone          String?
@@ -18,119 +17,126 @@ model users {
   city           String?
   postalCode     String?
   restaurantName String?
-  description    String?   @db.Text
+  description    String?          @db.Text
   logo           String?
-  isActive       Boolean   @default(true)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  isActive       Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
   deliveryRadius String?
   hours          String?
-  isOpen         Boolean   @default(true)
-  minimumOrder   Decimal?  @db.Decimal(10, 2)
-  role           Role      @default(RESTAURANT)
-  notifications  Json?
-  security       Json?
+  isOpen         Boolean          @default(true)
+  minimumOrder   Decimal?         @db.Decimal(10, 2)
+  role           Role             @default(RESTAURANT)
+  security       String?          @db.LongText
   customMessage  String?
-
-  // Relations avec cuisines (Un restaurant peut avoir plusieurs cuisines)
-  cuisines       cuisine[] @relation("UserCuisines")
-
-  orders         orders[]
-  dishes         dishes[]
-  promotions     promotions[]
-  reviews        reviews[]
-  reservations   reservations[]
-  payments       payments[]
-  legalDocuments legaldocuments[]
   campagnes      campagnes[]
   customers      customers[]
+  dishes         dishes[]
+  legalDocuments legaldocuments[]
+  orders         orders[]
+  payments       payments[]
+  promotions     promotions[]
+  reservations   reservations[]
+  reviews        reviews[]
   sessions       sessions[]
   userRoles      user_roles[]
+  notifications  notifications[] // <- Relation avec notifications
+  cuisine        cuisine[]        @relation("usercuisines")
 }
 
-// Table des cuisines
 model cuisine {
-  id    String   @id @default(cuid())
-  name  String   @unique
-  users users[]  @relation("UserCuisines")
+  id    String  @id @default(cuid())
+  name  String  @unique
+  users users[] @relation("usercuisines")
 }
 
-// Table des clients
 model customers {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String?  // Ajout du mot de passe pour les clients
-  name      String
-  phone     String?
-  address   String?
-  city      String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  userId    String?
+  id                   String                 @id @default(cuid())
+  email                String                 @unique
+  password             String?
+  name                 String
+  phone                String?
+  address              String?
+  city                 String?
+  isActive             Boolean                @default(true)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  userId               String?
+  user                 users?                 @relation(fields: [userId], references: [id])
+  orders               orders[]
+  reservations         reservations[]
+  reviews              reviews[]
+  sessions             sessions[]
+  loyalty_points       loyalty_points[]
+  loyalty_transactions loyalty_transactions[]
+  notifications        notifications[] // <- Relation avec notifications
 
-  user users? @relation(fields: [userId], references: [id])
-
-  // Relations
-  orders       orders[]
-  reviews      reviews[]
-  reservations reservations[]
-  sessions     sessions[]
+  @@index([userId], map: "customers_userId_fkey")
 }
 
-// Table des sessions pour iron-session
 model sessions {
-  id        String   @id @default(cuid())
-  sessionId String   @unique
-  userId    String?
+  id         String     @id @default(cuid())
+  sessionId  String     @unique
+  userId     String?
   customerId String?
-  data      Json
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  user     users?     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  customer customers? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  data       String     @db.LongText
+  expiresAt  DateTime
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  customer   customers? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  user       users?     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([sessionId])
   @@index([expiresAt])
+  @@index([customerId], map: "sessions_customerId_fkey")
+  @@index([userId], map: "sessions_userId_fkey")
 }
 
-// Table des rôles
 model roles {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id          String       @id @default(cuid())
+  name        String       @unique
   description String?
-  permissions Json?    // Stockage des permissions en JSON
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  userRoles user_roles[]
+  permissions Json // <-- Remplace String? par Json
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  userRoles   user_roles[]
 }
 
-// Table de liaison utilisateurs-rôles
 model user_roles {
   id     String @id @default(cuid())
   userId String
   roleId String
-
-  // Relations
-  user users @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role roles @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  role   roles  @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user   users  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId])
+  @@index([roleId], map: "user_roles_roleId_fkey")
 }
 
-// Table des permissions
+model notifications {
+  id         String   @id @default(cuid())
+  title      String
+  message    String
+  type       String // exemple: "order", "promotion", "system"
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  customerId String?
+  userId     String?
+
+  customer customers? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  user     users?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([userId])
+}
+
 model permissions {
   id          String   @id @default(cuid())
   name        String   @unique
   description String?
-  resource    String   // Ex: "orders", "dishes", "users"
-  action      String   // Ex: "create", "read", "update", "delete"
+  resource    String
+  action      String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -139,65 +145,65 @@ model permissions {
 
 model categories {
   id          String   @id @default(cuid())
-  name        String  @unique 
+  name        String   @unique
   description String?
   image       String?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  // Relations
-  dishes dishes[]
+  dishes      dishes[]
 }
 
 model dishes {
-  id              String     @id @default(cuid())
+  id              String        @id @default(cuid())
   name            String
-  description     String?    @db.Text
+  description     String?       @db.Text
   price           Float
   image           String?
-  isAvailable     Boolean    @default(true)
+  isAvailable     Boolean       @default(true)
   preparationTime Int?
-  ingredients     Json?
+  ingredients     String?       @db.LongText
   allergens       String?
   calories        Int?
-  isVegetarian    Boolean    @default(false)
-  isVegan         Boolean    @default(false)
-  isGlutenFree    Boolean    @default(false)
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  isVegetarian    Boolean       @default(false)
+  isVegan         Boolean       @default(false)
+  isGlutenFree    Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
   categoryId      String
   userId          String
+  categories      categories    @relation(fields: [categoryId], references: [id])
+  users           users         @relation(fields: [userId], references: [id])
+  order_items     order_items[]
 
-  // Relations
-  categories  categories    @relation(fields: [categoryId], references: [id])
-  users       users         @relation(fields: [userId], references: [id])
-  order_items order_items[]
+  @@index([categoryId], map: "dishes_categoryId_fkey")
+  @@index([userId], map: "dishes_userId_fkey")
 }
 
 model orders {
-  id              String        @id @default(cuid())
-  orderNumber     String        @unique
-  status          OrderStatus   @default(PENDING)
-  totalAmount     Decimal       @db.Decimal(10, 2)
-  deliveryFee     Decimal?      @db.Decimal(10, 2)
-  tax             Decimal?      @db.Decimal(10, 2)
-  discount        Decimal?      @db.Decimal(10, 2)
+  id              String         @id @default(cuid())
+  orderNumber     String         @unique
+  status          OrderStatus    @default(PENDING)
+  totalAmount     Decimal        @db.Decimal(10, 2)
+  deliveryFee     Decimal?       @db.Decimal(10, 2)
+  tax             Decimal?       @db.Decimal(10, 2)
+  discount        Decimal?       @db.Decimal(10, 2)
   deliveryAddress String?
   deliveryTime    DateTime?
-  notes           String?       @db.Text
+  notes           String?        @db.Text
   paymentMethod   PaymentMethod?
-  paymentStatus   PaymentStatus @default(PENDING)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  paymentStatus   PaymentStatus  @default(PENDING)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
   customerId      String
   userId          String
+  order_items     order_items[]
+  customers       customers      @relation(fields: [customerId], references: [id])
+  users           users          @relation(fields: [userId], references: [id])
+  payments        payments?
 
-  // Relations
-  customers   customers     @relation(fields: [customerId], references: [id])
-  users       users         @relation(fields: [userId], references: [id])
-  order_items order_items[]
-  payments    payments?
+  @@index([customerId], map: "orders_customerId_fkey")
+  @@index([userId], map: "orders_userId_fkey")
 }
 
 model order_items {
@@ -207,26 +213,28 @@ model order_items {
   notes    String?
   orderId  String
   dishId   String
+  dishes   dishes  @relation(fields: [dishId], references: [id])
+  orders   orders  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  // Relations
-  orders orders @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  dishes dishes @relation(fields: [dishId], references: [id])
+  @@index([dishId], map: "order_items_dishId_fkey")
+  @@index([orderId], map: "order_items_orderId_fkey")
 }
 
 model reviews {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   rating     Int
-  comment    String?  @db.Text
-  response   String?  @db.Text
-  isVisible  Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  comment    String?   @db.Text
+  response   String?   @db.Text
+  isVisible  Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
   customerId String
   userId     String
+  customers  customers @relation(fields: [customerId], references: [id])
+  users      users     @relation(fields: [userId], references: [id])
 
-  // Relations
-  customers customers @relation(fields: [customerId], references: [id])
-  users     users     @relation(fields: [userId], references: [id])
+  @@index([customerId], map: "reviews_customerId_fkey")
+  @@index([userId], map: "reviews_userId_fkey")
 }
 
 model promotions {
@@ -246,9 +254,9 @@ model promotions {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   userId      String
+  users       users         @relation(fields: [userId], references: [id])
 
-  // Relations
-  users users @relation(fields: [userId], references: [id])
+  @@index([userId], map: "promotions_userId_fkey")
 }
 
 model legaldocuments {
@@ -262,8 +270,7 @@ model legaldocuments {
   expiryDate      DateTime?
   required        Boolean   @default(false)
   userId          String
-
-  users users @relation(fields: [userId], references: [id])
+  users           users     @relation(fields: [userId], references: [id])
 
   @@unique([userId, name])
 }
@@ -284,8 +291,9 @@ model campagnes {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   userId         String
+  users          users    @relation(fields: [userId], references: [id])
 
-  users users @relation(fields: [userId], references: [id])
+  @@index([userId], map: "campagnes_userId_fkey")
 }
 
 model reservations {
@@ -300,10 +308,11 @@ model reservations {
   updatedAt       DateTime          @updatedAt
   customerId      String
   userId          String
+  customers       customers         @relation(fields: [customerId], references: [id])
+  users           users             @relation(fields: [userId], references: [id])
 
-  // Relations
-  customers customers @relation(fields: [customerId], references: [id])
-  users     users     @relation(fields: [userId], references: [id])
+  @@index([customerId], map: "reservations_customerId_fkey")
+  @@index([userId], map: "reservations_userId_fkey")
 }
 
 model payments {
@@ -317,10 +326,10 @@ model payments {
   updatedAt       DateTime      @updatedAt
   orderId         String        @unique
   userId          String
+  orders          orders        @relation(fields: [orderId], references: [id])
+  users           users         @relation(fields: [userId], references: [id])
 
-  // Relations
-  orders orders @relation(fields: [orderId], references: [id])
-  users  users  @relation(fields: [userId], references: [id])
+  @@index([userId], map: "payments_userId_fkey")
 }
 
 model menu_settings {
@@ -338,7 +347,36 @@ model menu_settings {
   updatedAt        DateTime @updatedAt
 }
 
-// Enums
+model loyalty_points {
+  id          String @id @default(cuid())
+  current     Int    @default(0)
+  totalEarned Int    @default(0)
+  customerId  String
+
+  // Relation avec customers
+  customer customers @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId])
+}
+
+model loyalty_transactions {
+  id          String      @id @default(cuid())
+  type        LoyaltyType
+  points      Int
+  description String
+  orderId     String?
+  date        DateTime    @default(now())
+  customerId  String
+
+  // Relation avec customers
+  customer customers @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+enum LoyaltyType {
+  earned
+  redeemed
+}
+
 enum Role {
   ADMIN
   RESTAURANT
