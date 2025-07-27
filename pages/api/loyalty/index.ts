@@ -9,14 +9,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Récupération session
+    
     const session = await getIronSession<SessionData>(req, res, sessionOptions)
 
     if (!validateSession(session)) {
       return res.status(401).json({ message: "Non authentifié" })
     }
 
-    // Supposons que le client est connecté
+   
     if (session.customerId && session.userType === "customer") {
       // Récupérer points fidélité et transactions
       const points = await prisma.loyalty_points.findUnique({
@@ -35,7 +35,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
     }
 
-    // Si c'est un utilisateur (restaurant/admin) connecté, on peut retourner autre chose ou erreur :
     if (session.userId && session.userType === "user") {
       return res.status(403).json({ message: "Accès refusé aux utilisateurs non clients" })
     }

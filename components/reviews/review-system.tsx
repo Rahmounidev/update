@@ -50,7 +50,7 @@ export default function ReviewSystem({
   const [selectedReview, setSelectedReview] = useState<Review | null>(null)
   const [loading, setLoading] = useState(false)
 
-  /** Vérifie si l'utilisateur est connecté via l'API session */
+  
   const checkSession = async () => {
     try {
       const res = await fetch("/api/session", { credentials: "include" })
@@ -70,9 +70,9 @@ export default function ReviewSystem({
       const response = await fetch("/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include", // Obligatoire pour iron-session
+        credentials: "include", 
         body: JSON.stringify({
-          userId: restaurantId, // Le backend attend userId
+          userId: restaurantId, 
           rating: newRating,
           comment: newComment,
         }),
@@ -96,7 +96,7 @@ export default function ReviewSystem({
   };
   
 
-  /** Signaler un avis */
+  
   const reportReview = async () => {
     if (!selectedReview) return
 
@@ -117,7 +117,6 @@ export default function ReviewSystem({
     }
   }
 
-  /** Marquer un avis comme utile / pas utile */
   const markHelpful = async (reviewId: string, helpful: boolean) => {
     try {
       await fetch(`/api/reviews/${reviewId}/helpful`, {
@@ -134,7 +133,6 @@ export default function ReviewSystem({
 
   return (
     <div className="space-y-6">
-      {/* Rating Overview */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -203,7 +201,6 @@ export default function ReviewSystem({
             </div>
           </div>
 
-          {/* Rating Distribution */}
           <div className="space-y-2">
             {[5, 4, 3, 2, 1].map((rating) => {
               const count = reviews.filter((r) => r.rating === rating).length
@@ -222,7 +219,7 @@ export default function ReviewSystem({
         </CardContent>
       </Card>
 
-      {/* Reviews List */}
+      
       <div className="space-y-4">
         {reviews.map((review) => (
           <Card key={review.id}>

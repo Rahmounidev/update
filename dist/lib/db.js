@@ -5,7 +5,6 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
 });
 if (process.env.NODE_ENV !== "production")
     globalForPrisma.prisma = prisma;
-// Test de connexion
 export async function testConnection() {
     try {
         await prisma.$connect();
@@ -17,7 +16,6 @@ export async function testConnection() {
         return false;
     }
 }
-// Fermeture propre de la connexion
 export async function disconnectDB() {
     await prisma.$disconnect();
 }

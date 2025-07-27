@@ -84,7 +84,7 @@ export default function LoyaltyPage() {
             currentPoints={loyaltyData.currentPoints}
             totalEarned={loyaltyData.totalEarned}
             transactions={loyaltyData.transactions}
-            onRedeem={fetchLoyaltyData} // rafraîchir après échange
+            onRedeem={fetchLoyaltyData} 
           />
         )}
       </section>

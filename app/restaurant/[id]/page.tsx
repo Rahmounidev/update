@@ -77,7 +77,7 @@ export default function RestaurantPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     async function fetchOrder() {
       try {
-        const orderId = "CMD-2024-001" // à remplacer par dynamique
+        const orderId = "CMD-2024-001"
         const res = await fetch(`/api/orders/${orderId}`)
         if (!res.ok) return
         const data = await res.json()
@@ -119,7 +119,7 @@ export default function RestaurantPage({ params }: { params: { id: string } }) {
     checkSession()
   }, [])
 
-  // Charger restaurant + avis (avec gestion loading + error)
+  // Charger restaurant + avis 
   useEffect(() => {
     async function fetchData() {
       try {
@@ -146,7 +146,7 @@ export default function RestaurantPage({ params }: { params: { id: string } }) {
     fetchData()
   }, [params.id])
 
-  // Soumission avis
+  
   async function submitReview() {
     if (newRating < 1 || newRating > 5) {
       setSubmitError("Veuillez sélectionner une note entre 1 et 5.")
@@ -240,9 +240,7 @@ export default function RestaurantPage({ params }: { params: { id: string } }) {
     console.log("Search:", query)
   }
 
-  // --- Rendu ---
-  // Ne pas bloquer le rendu avec un return au loading,
-  // afficher contenu partiel ou un spinner léger si besoin
+
   if (loading) return <Spinner />
   if (!restaurant) return <p className="p-4">Restaurant non trouvé.</p>
   return (
@@ -251,16 +249,16 @@ export default function RestaurantPage({ params }: { params: { id: string } }) {
 
       {order && <WhatsAppNotification orderId={order.orderId} />}
 
-      {/* Gestion erreur */}
+    
       {error && (
         <div className="p-4 bg-red-100 text-red-700 max-w-7xl mx-auto my-4 rounded">
           Erreur : {error}
         </div>
       )}
 
-      {/* Contenu principal, même si loading on montre une structure */}
+      
       <section className="relative max-w-7xl mx-auto">
-        {/* Image restaurant */}
+        
         {restaurant ? (
           <>
             <Image
@@ -298,7 +296,7 @@ export default function RestaurantPage({ params }: { params: { id: string } }) {
           !loading && <p className="p-4">Restaurant non trouvé.</p>
         )}
 
-        {/* On peut afficher un spinner léger pendant loading */}
+        
         {loading && (
           <div className="flex justify-center items-center p-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600" />
@@ -306,7 +304,7 @@ export default function RestaurantPage({ params }: { params: { id: string } }) {
         )}
       </section>
 
-      {/* Menu, Infos, Avis */}
+   
       {restaurant && !error && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Tabs defaultValue="menu" className="w-full">

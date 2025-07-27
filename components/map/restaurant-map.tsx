@@ -53,7 +53,7 @@ export default function RestaurantMap({ restaurants, onRestaurantSelect, userLoc
   }
 
   const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-    const R = 6371 // Rayon de la Terre en km
+    const R = 6371 
     const dLat = ((lat2 - lat1) * Math.PI) / 180
     const dLng = ((lng2 - lng1) * Math.PI) / 180
     const a =
@@ -73,7 +73,7 @@ export default function RestaurantMap({ restaurants, onRestaurantSelect, userLoc
 
   return (
     <div className="space-y-6">
-      {/* Controls */}
+      
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -108,16 +108,16 @@ export default function RestaurantMap({ restaurants, onRestaurantSelect, userLoc
         </CardContent>
       </Card>
 
-      {/* Map Simulation */}
+      
       <Card>
         <CardContent className="p-0">
           <div className="relative bg-gradient-to-br from-blue-50 to-green-50 h-96 rounded-lg overflow-hidden">
-            {/* Simulation d'une carte */}
+            
             <div className="absolute inset-0 bg-gray-100 opacity-20">
               <div className="w-full h-full bg-gradient-to-br from-blue-100 via-green-100 to-yellow-100"></div>
             </div>
 
-            {/* User Location */}
+            
             <div
               className="absolute w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-lg transform -translate-x-1/2 -translate-y-1/2 z-10"
               style={{
@@ -128,7 +128,7 @@ export default function RestaurantMap({ restaurants, onRestaurantSelect, userLoc
               <div className="absolute inset-0 bg-blue-600 rounded-full animate-ping opacity-75"></div>
             </div>
 
-            {/* Restaurants */}
+            
             {filteredRestaurants.slice(0, 10).map((restaurant, index) => {
               const angle = (index * 360) / Math.min(filteredRestaurants.length, 10)
               const radius = Math.min(restaurant.distance * 30, 120)
@@ -157,7 +157,7 @@ export default function RestaurantMap({ restaurants, onRestaurantSelect, userLoc
               )
             })}
 
-            {/* Distance Circles */}
+           
             {[1, 3, 5].map((distance) => (
               <div
                 key={distance}
@@ -178,7 +178,7 @@ export default function RestaurantMap({ restaurants, onRestaurantSelect, userLoc
         </CardContent>
       </Card>
 
-      {/* Restaurant List */}
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredRestaurants.map((restaurant) => (
           <Card

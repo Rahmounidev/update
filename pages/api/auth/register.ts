@@ -16,13 +16,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const session = await getIronSession<SessionData>(req, res, sessionOptions)
 
-    // Validation des données
     const validatedData = registerSchema.parse(req.body)
     const { firstName, lastName, email, password, phone } = validatedData
 
     console.log("✅ Données validées:", { firstName, lastName, email, phone })
 
-    // Test de connexion à la base de données
     try {
       await prisma.$connect()
       console.log("✅ Connexion à la base de données réussie")
@@ -34,7 +32,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
     }
 
-    // Vérifier si l'utilisateur existe déjà
     const existingCustomer = await prisma.customers.findUnique({
       where: { email },
     })
@@ -46,10 +43,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log("✅ Email disponible, création du client...")
 
-    // Hasher le mot de passe
     const hashedPassword = await hashPassword(password)
 
-    // Créer le nouveau client
     const customer = await prisma.customers.create({
       data: {
         email,
@@ -61,7 +56,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log("✅ Client créé:", customer.id)
 
-    // Créer la session
     session.customerId = customer.id
     session.email = customer.email
     session.name = customer.name

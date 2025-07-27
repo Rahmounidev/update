@@ -7,7 +7,6 @@ import { profileSchema } from "@/lib/validations/profile"
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getIronSession<SessionData>(req, res, sessionOptions)
 
-  // Vérifie l’authentification
   if (!session.isLoggedIn || !session.customerId) {
     return res.status(401).json({ message: "Non authentifié" })
   }
@@ -57,7 +56,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         data: parsed.data,
       })
 
-      // Mettre à jour la session si nécessaire
       if (parsed.data.name) {
         session.name = parsed.data.name
         await session.save()

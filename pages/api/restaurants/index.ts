@@ -17,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (cuisine && cuisine !== "Tous") {
       filters.cuisine = {
         some: {
-          name: { contains: String(cuisine) }, // mode supprimé
+          name: { contains: String(cuisine) }, 
         },
       };
     }
@@ -34,7 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       filters.OR = [
         { restaurantName: { contains: String(search) } },
         { description: { contains: String(search) } },
-        { cuisine: { some: { name: { contains: String(search) } } } }, // 'cuisines' -> 'cuisine' (ton modèle)
+        { cuisine: { some: { name: { contains: String(search) } } } }, 
       ];
     }
 
@@ -72,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
-    // Calcul de la note moyenne
+    
     const restaurants = restaurantsRaw.map((restaurant) => {
       const ratings = restaurant.reviews.map((r) => r.rating);
       const averageRating =

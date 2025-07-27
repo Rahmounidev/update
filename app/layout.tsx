@@ -1,7 +1,7 @@
 import type React from 'react'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import { AuthProvider } from '@/components/auth-provider'  // chemin à adapter
+import { AuthProvider } from '@/components/auth-provider'  
 import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
 

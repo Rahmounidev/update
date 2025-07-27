@@ -15,7 +15,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ message: "Non authentifié" })
     }
 
-    // Si c'est un client
     if (session.customerId && session.userType === "customer") {
       const customer = await prisma.customers.findUnique({
         where: { id: session.customerId },
@@ -44,7 +43,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
     }
 
-    // Si c'est un utilisateur (restaurant/admin)
     if (session.userId && session.userType === "user") {
       const user = await prisma.users.findUnique({
         where: { id: session.userId },

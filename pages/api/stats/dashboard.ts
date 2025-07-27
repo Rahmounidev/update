@@ -30,7 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         _sum: { totalAmount: true },
       }),
 
-      // Restaurant favori (le plus commandé)
+      // Restaurant favori 
       prisma.orders.groupBy({
         by: ["userId"],
         where: { customerId: session.userId },
@@ -63,7 +63,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }),
     ])
 
-    // Récupérer les détails du restaurant favori
+   
     let favoriteRestaurantDetails = null
     if (favoriteRestaurant.length > 0) {
       favoriteRestaurantDetails = await prisma.users.findUnique({

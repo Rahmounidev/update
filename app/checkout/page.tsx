@@ -44,7 +44,7 @@ export default function CheckoutPage() {
     billingPostalCode: "",
   });
 
-  // Vérifier la session utilisateur
+  
   const checkSession = async () => {
     try {
       const res = await fetch("/api/session", { credentials: "include" });
@@ -58,7 +58,7 @@ export default function CheckoutPage() {
     }
   };
 
-  // Charger le panier depuis localStorage
+  
   useEffect(() => {
     const storedCart = localStorage.getItem("cart");
     if (storedCart) {
@@ -66,12 +66,12 @@ export default function CheckoutPage() {
     }
   }, []);
 
-  // Calculs totaux
+ 
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const deliveryFee = deliveryMethod === "delivery" ? 2.5 : 0;
   const total = subtotal + deliveryFee;
 
-  // Soumission commande
+ 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -90,7 +90,7 @@ export default function CheckoutPage() {
     try {
       setLoading(true);
 
-      // Construction adresse selon mode de livraison ou retrait
+     
       const deliveryAddress =
         deliveryMethod === "delivery"
           ? `${orderData.address}, ${orderData.city} ${orderData.postalCode}`
@@ -100,7 +100,7 @@ export default function CheckoutPage() {
         items: cartItems.map((item) => ({
           dishId: item.id,
           quantity: item.quantity,
-          notes: "", // tu peux ajouter une gestion des notes plus tard
+          notes: "", 
         })),
         deliveryAddress,
         notes: orderData.deliveryInstructions,
@@ -123,7 +123,7 @@ export default function CheckoutPage() {
 
       console.log("Commande créée:", data.order);
 
-      // Vider le panier localStorage après commande réussie
+      
       localStorage.removeItem("cart");
 
       window.location.href = "/orders";
@@ -137,7 +137,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -156,10 +156,10 @@ export default function CheckoutPage() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Formulaire checkout */}
+          
           <div className="lg:col-span-2">
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Méthode livraison */}
+              
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
@@ -181,7 +181,7 @@ export default function CheckoutPage() {
                 </CardContent>
               </Card>
 
-              {/* Adresse livraison (visible si livraison) */}
+              
               {deliveryMethod === "delivery" && (
                 <Card>
                   <CardHeader>
@@ -244,7 +244,7 @@ export default function CheckoutPage() {
                 </Card>
               )}
 
-              {/* Mode de paiement */}
+              
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
@@ -326,7 +326,7 @@ export default function CheckoutPage() {
             </form>
           </div>
 
-          {/* Récapitulatif */}
+          
           <div className="lg:col-span-1">
             <Card className="sticky top-4">
               <CardHeader>

@@ -14,23 +14,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log("🔍 Tentative de connexion...")
     const session = await getIronSession<SessionData>(req, res, sessionOptions)
 
-    // Validation des données
+   
     const validatedData = loginSchema.parse(req.body)
     const { email, password } = validatedData
 
     console.log("📧 Email de connexion:", email)
 
-    // Chercher d'abord dans les clients
+  
     const customer = await prisma.customers.findUnique({
       where: { email },
     })
 
     if (customer && customer.password) {
-      // Vérifier le mot de passe du client
+      // Vérifier le mot de passe 
       const isValidPassword = await verifyPassword(password, customer.password)
 
       if (isValidPassword) {
-        // Créer la session client
+     
         session.customerId = customer.id
         session.email = customer.email
         session.name = customer.name
@@ -54,7 +54,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    // Chercher dans les utilisateurs (restaurants/admins)
+    
     const user = await prisma.users.findUnique({
       where: { email },
       include: {
@@ -67,11 +67,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
 
     if (user) {
-      // Vérifier le mot de passe de l'utilisateur
       const isValidPassword = await verifyPassword(password, user.password)
 
       if (isValidPassword) {
-        // Créer la session utilisateur
         session.userId = user.id
         session.email = user.email
         session.name = user.name

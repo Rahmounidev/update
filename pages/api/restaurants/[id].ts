@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next"
-import { prisma } from "@/lib/prisma"  // assure-toi que le chemin est correct
+import { prisma } from "@/lib/prisma"  
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
@@ -45,7 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             code: true,
           },
         },
-        cuisine: { select: { id: true, name: true } }, // relation many-to-many
+        cuisine: { select: { id: true, name: true } }, 
       },
     })
 
@@ -53,11 +53,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ message: "Restaurant non trouvé" })
     }
 
-    // Calcul de la note moyenne
+    
     const ratings = restaurant.reviews.map(r => r.rating)
     const averageRating = ratings.length > 0 ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length : 0
 
-    // Regrouper les plats par catégorie
+   
     const categoriesMap = new Map<string, any>()
     restaurant.dishes.forEach(dish => {
       const categoryName = dish.categories?.name || "Autres"

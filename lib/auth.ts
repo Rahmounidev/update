@@ -9,7 +9,7 @@ export async function verifyPassword(password: string, hashedPassword: string): 
   return bcrypt.compare(password, hashedPassword)
 }
 
-// Vérifier les permissions utilisateur
+
 export async function checkUserPermissions(userId: string, resource: string, action: string): Promise<boolean> {
   try {
     const userWithRoles = await prisma.users.findUnique({
@@ -25,7 +25,7 @@ export async function checkUserPermissions(userId: string, resource: string, act
 
     if (!userWithRoles) return false
 
-    // Vérifier les permissions dans les rôles
+   
     for (const userRole of userWithRoles.userRoles) {
       const permissions = userRole.role.permissions as any
       if (permissions && permissions[resource] && permissions[resource].includes(action)) {

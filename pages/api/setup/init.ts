@@ -10,10 +10,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     console.log("🚀 Initialisation de l'application...")
 
-    // Créer les rôles par défaut
+   
     await createDefaultRoles()
 
-    // Créer un admin par défaut
+  
     const adminEmail = "admin@droovo.com"
     const adminPassword = "admin123"
 
@@ -34,7 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       })
 
-      // Assigner le rôle admin
+      
       const adminRole = await prisma.roles.findUnique({
         where: { name: "ADMIN" },
       })
@@ -51,7 +51,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log("✅ Administrateur créé:", adminEmail)
     }
 
-    // Créer des catégories par défaut
+   
     const defaultCategories = [
       { name: "Entrées", description: "Plats d'entrée" },
       { name: "Plats principaux", description: "Plats de résistance" },

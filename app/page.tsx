@@ -57,7 +57,7 @@ export default function HomePage() {
     Desserts: "🍰",
   }
 
-  // --- Charger la commande actuelle ---
+  
   useEffect(() => {
     async function fetchOrder() {
       try {
@@ -79,7 +79,7 @@ export default function HomePage() {
     fetchOrder()
   }, [])
 
-  // --- Charger cuisines ---
+
   useEffect(() => {
     async function fetchCuisines() {
       setLoadingCuisines(true)
@@ -101,7 +101,6 @@ export default function HomePage() {
     fetchCuisines()
   }, [])
 
-  // --- Charger restaurants ---
   useEffect(() => {
     async function fetchRestaurants() {
       setLoadingRestaurants(true)
@@ -125,7 +124,6 @@ export default function HomePage() {
     fetchRestaurants()
   }, [searchQuery])
 
-  // --- Restaurants pour la carte ---
   const mapRestaurants = restaurants.slice(0, 5).map(r => ({
     id: r.id,
     name: r.restaurantName,
@@ -145,7 +143,7 @@ export default function HomePage() {
 
       {order && <WhatsAppNotification orderId={order.orderId} />}
 
-      {/* Hero Section */}
+      
       <section className="relative pt-24 pb-16 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-pink-600 to-orange-500 opacity-10"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -351,7 +349,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Features Section */}
+      
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">

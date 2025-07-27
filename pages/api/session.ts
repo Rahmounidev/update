@@ -3,7 +3,6 @@ import { getIronSession } from "iron-session"
 import { sessionOptions, SessionData } from "@/lib/session"
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Cast session en SessionData pour accéder à tes propriétés personnalisées
   const session = (await getIronSession(req, res, sessionOptions)) as SessionData
 
   if (!session || !session.isLoggedIn) {

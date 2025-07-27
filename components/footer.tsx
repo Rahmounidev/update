@@ -7,7 +7,7 @@ export default function Footer() {
     <footer className="bg-gray-900 text-gray-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Logo and Description */}
+         
           <div className="space-y-4">
             <Link href="/" className="inline-block">
               <Image src="/images/droovo-logo.png" alt="Droovo" width={120} height={35} className="h-8 w-auto" />
@@ -32,7 +32,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Navigation */}
+          
           <div>
             <h3 className="text-lg font-semibold mb-4 text-white">Navigation</h3>
             <ul className="space-y-2">
@@ -64,7 +64,6 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Support */}
           <div>
             <h3 className="text-lg font-semibold mb-4 text-white">Support</h3>
             <ul className="space-y-2">
@@ -96,7 +95,6 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Contact */}
           <div>
             <h3 className="text-lg font-semibold mb-4 text-white">Contact</h3>
             <ul className="space-y-3">

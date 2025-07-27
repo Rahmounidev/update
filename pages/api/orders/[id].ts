@@ -25,12 +25,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // --- GET : Récupérer la commande ---
     if (req.method === "GET") {
       const order = await prisma.orders.findUnique({
         where: { id: orderId },
         include: {
-          users: { select: { restaurantName: true } }, // Inclure le nom du restaurant
+          users: { select: { restaurantName: true } }, 
         },
       })
 
@@ -42,25 +41,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(403).json({ message: "Accès refusé à cette commande" })
       }
 
-      // Calcul du temps estimé
       let estimatedTime: string | null = null
       if (order.deliveryTime) {
         estimatedTime = new Date(order.deliveryTime).toLocaleTimeString()
       } else {
         const estimated = new Date(order.createdAt)
-        estimated.setMinutes(estimated.getMinutes() + 30) // 30 min par défaut
+        estimated.setMinutes(estimated.getMinutes() + 30) 
         estimatedTime = estimated.toLocaleTimeString()
       }
 
       return res.status(200).json({
         orderId: order.id,
-        status: order.status, // PENDING, CONFIRMED, PREPARING, READY, DELIVERED
+        status: order.status, 
         restaurantName: order.users?.restaurantName || "Restaurant",
         estimatedTime,
       })
     }
 
-    // --- POST : Ajouter un avis ---
     if (req.method === "POST") {
       const { rating, comment } = reviewSchema.parse(req.body)
 

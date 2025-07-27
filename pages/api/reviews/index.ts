@@ -27,9 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log("✅ Données validées:", validatedData);
 
-    // Ici on ne vérifie ni les commandes ni les avis existants
-
-    // Crée l'avis directement
+  
     const review = await prisma.reviews.create({
       data: {
         rating,

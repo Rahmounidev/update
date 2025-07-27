@@ -1,4 +1,4 @@
-// lib/validations/profile.ts
+
 import { z } from "zod"
 
 export const profileSchema = z.object({

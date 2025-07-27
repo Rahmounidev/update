@@ -26,7 +26,6 @@ export default function CartPage() {
   const [promoCode, setPromoCode] = useState("")
   const [discount, setDiscount] = useState(0)
 
-  // Charger le panier depuis localStorage
   useEffect(() => {
     const storedCart = localStorage.getItem("cart")
     if (storedCart) {
@@ -34,7 +33,6 @@ export default function CartPage() {
     }
   }, [])
 
-  // Sauvegarder le panier dans localStorage
   const saveCart = (items: CartItem[]) => {
     setCartItems(items)
     localStorage.setItem("cart", JSON.stringify(items))
@@ -166,7 +164,7 @@ export default function CartPage() {
               </CardContent>
             </Card>
 
-            {/* Promo Code */}
+          
             <Card className="mt-6">
               <CardHeader>
                 <CardTitle>Code promo</CardTitle>
@@ -189,7 +187,7 @@ export default function CartPage() {
             </Card>
           </div>
 
-          {/* Order Summary */}
+          
           <div className="lg:col-span-1">
             <Card className="sticky top-4">
               <CardHeader>

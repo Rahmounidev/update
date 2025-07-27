@@ -50,7 +50,7 @@ interface LoyaltySystemProps {
   currentPoints: number;
   totalEarned: number;
   transactions: PointsTransaction[];
-  onRedeem?: () => void; // callback pour rafraîchir après échange
+  onRedeem?: () => void; 
 }
 
 const loyaltyLevels: LoyaltyLevel[] = [
@@ -108,7 +108,7 @@ export default function LoyaltySystem({ currentPoints, totalEarned, transactions
       console.log("Reward redeemed:", data);
 
       setSelectedReward(null);
-      if (onRedeem) onRedeem(); // refresh les données
+      if (onRedeem) onRedeem(); 
     } catch (err: any) {
       setRedeemError(err.message || "Erreur inconnue");
     } finally {
@@ -122,7 +122,7 @@ export default function LoyaltySystem({ currentPoints, totalEarned, transactions
 
   return (
     <div className="space-y-6">
-      {/* Points Overview */}
+      
       <Card className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -166,7 +166,7 @@ export default function LoyaltySystem({ currentPoints, totalEarned, transactions
           <TabsTrigger value="history">Historique</TabsTrigger>
         </TabsList>
 
-        {/* Rewards Tab */}
+        
         <TabsContent value="rewards" className="space-y-4">
           {redeemError && <p className="text-red-500 text-sm">{redeemError}</p>}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -219,7 +219,7 @@ export default function LoyaltySystem({ currentPoints, totalEarned, transactions
           </div>
         </TabsContent>
 
-        {/* Levels Tab */}
+        
         <TabsContent value="levels" className="space-y-4">
           {loyaltyLevels.map((level) => {
             const isCurrentLevel = level.name === currentLevel.name;
@@ -261,7 +261,7 @@ export default function LoyaltySystem({ currentPoints, totalEarned, transactions
           })}
         </TabsContent>
 
-        {/* History Tab */}
+        
         <TabsContent value="history" className="space-y-4">
           {transactions.length === 0 ? (
             <Card>

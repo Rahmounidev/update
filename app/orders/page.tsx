@@ -36,7 +36,7 @@ type Order = {
   createdAt: string
   users: { restaurantName: string; name: string; logo?: string }
   order_items: OrderItem[]
-  review?: { rating: number; comment?: string } | null // Récupéré via relation reviews
+  review?: { rating: number; comment?: string } | null 
 }
 
 const getStatusBadge = (status: string) => {
@@ -134,7 +134,7 @@ export default function OrdersPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.message || "Erreur lors de l'envoi de l'avis")
 
-      // Mettre à jour localement la commande pour afficher la note
+
       setOrders((prev) =>
         prev.map((o) =>
           o.id === selectedOrder.id ? { ...o, review: { rating, comment: review } } : o
@@ -151,7 +151,7 @@ export default function OrdersPage() {
     }
   }
 
-  // Composant d'étoiles cliquables
+ 
   const StarRating = ({
     rating,
     setRating,
@@ -322,7 +322,7 @@ export default function OrdersPage() {
                               ))}
                             </div>
                           </div>
-                          {/* Bouton laisser un avis si pas encore d'avis et status DELIVERED */}
+                          
                           {order.status === "DELIVERED" && !order.review?.rating && (
                             <div className="mt-4">
                               <Dialog open={selectedOrder?.id === order.id} onOpenChange={(open) => !open && setSelectedOrder(null)}>

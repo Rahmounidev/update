@@ -14,7 +14,7 @@ export default function WhatsAppNotification({ orderId }: WhatsAppNotificationPr
   const [isVisible, setIsVisible] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
 
-  // --- Fonction pour récupérer l'état réel de la commande ---
+  
   const fetchOrderStatus = async () => {
     try {
       const res = await fetch(`/api/orders/${orderId}`);
@@ -25,7 +25,7 @@ export default function WhatsAppNotification({ orderId }: WhatsAppNotificationPr
       const newNotification = {
         id: Date.now(),
         orderId: data.orderId,
-        status: data.status.toLowerCase(), // en minuscule pour le switch
+        status: data.status.toLowerCase(), 
         restaurantName: data.restaurantName,
         estimatedTime: data.estimatedTime,
         timestamp: new Date().toLocaleTimeString(),
@@ -40,12 +40,12 @@ export default function WhatsAppNotification({ orderId }: WhatsAppNotificationPr
   };
 
   useEffect(() => {
-    fetchOrderStatus(); // premier appel immédiat
-    const interval = setInterval(fetchOrderStatus, 10000); // actualiser toutes les 10 sec
+    fetchOrderStatus(); 
+    const interval = setInterval(fetchOrderStatus, 10000); /
     return () => clearInterval(interval);
   }, [orderId]);
 
-  // --- Génération des messages selon le statut ---
+
   const getStatusMessage = (status: string, orderId: string, restaurantName: string, estimatedTime?: string) => {
     switch (status) {
       case "confirmed":
@@ -61,7 +61,7 @@ export default function WhatsAppNotification({ orderId }: WhatsAppNotificationPr
     }
   };
 
-  // --- Icônes pour les statuts ---
+  // --- Icônes  ---
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "confirmed":

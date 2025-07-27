@@ -10,7 +10,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const session = await getIronSession<SessionData>(req, res, sessionOptions)
 
-    // Détruire la session
     session.destroy()
 
     console.log("✅ Déconnexion réussie")

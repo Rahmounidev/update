@@ -3,7 +3,7 @@ import { getIronSession } from "iron-session";
 import { prisma } from "@/lib/db";
 import { sessionOptions, type SessionData, validateSession } from "@/lib/session";
 
-// Liste des récompenses disponibles (tu peux la stocker en BDD)
+// Liste des récompenses disponibles
 const availableRewards = [
   { id: "1", name: "Livraison gratuite", pointsCost: 100 },
   { id: "2", name: "Réduction 10%", pointsCost: 200 },
@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ message: "Récompense non trouvée" });
     }
 
-    // Récupérer les points actuels du client
+    // Récupérer les points actuels 
     const loyalty = await prisma.loyalty_points.findUnique({
       where: { customerId: session.customerId },
     });
@@ -44,7 +44,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ message: "Points insuffisants" });
     }
 
-    // Déduire les points et ajouter une transaction
     const updatedLoyalty = await prisma.loyalty_points.update({
       where: { customerId: session.customerId },
       data: {

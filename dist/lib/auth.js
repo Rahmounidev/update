@@ -6,7 +6,7 @@ export async function hashPassword(password) {
 export async function verifyPassword(password, hashedPassword) {
     return bcrypt.compare(password, hashedPassword);
 }
-// Vérifier les permissions utilisateur
+
 export async function checkUserPermissions(userId, resource, action) {
     try {
         const userWithRoles = await prisma.users.findUnique({
@@ -21,7 +21,7 @@ export async function checkUserPermissions(userId, resource, action) {
         });
         if (!userWithRoles)
             return false;
-        // Vérifier les permissions dans les rôles
+        
         for (const userRole of userWithRoles.userRoles) {
             const permissions = userRole.role.permissions;
             if (permissions && permissions[resource] && permissions[resource].includes(action)) {
@@ -35,10 +35,8 @@ export async function checkUserPermissions(userId, resource, action) {
         return false;
     }
 }
-// Créer les rôles par défaut
 export async function createDefaultRoles() {
     try {
-        // Rôle Admin
         await prisma.roles.upsert({
             where: { name: "ADMIN" },
             update: {},
@@ -54,7 +52,6 @@ export async function createDefaultRoles() {
                 }
             }
         });
-        // Rôle Restaurant
         await prisma.roles.upsert({
             where: { name: "RESTAURANT" },
             update: {},
@@ -69,7 +66,6 @@ export async function createDefaultRoles() {
                 }
             }
         });
-        // Rôle Customer
         await prisma.roles.upsert({
             where: { name: "CUSTOMER" },
             update: {},

@@ -9,9 +9,7 @@ async function handler(req, res) {
     }
     try {
         console.log("🚀 Initialisation de l'application...");
-        // Créer les rôles par défaut
         await (0, auth_1.createDefaultRoles)();
-        // Créer un admin par défaut
         const adminEmail = "admin@droovo.com";
         const adminPassword = "admin123";
         const existingAdmin = await db_1.prisma.users.findUnique({
@@ -28,7 +26,6 @@ async function handler(req, res) {
                     restaurantName: "Droovo Admin",
                 },
             });
-            // Assigner le rôle admin
             const adminRole = await db_1.prisma.roles.findUnique({
                 where: { name: "ADMIN" },
             });
@@ -42,7 +39,6 @@ async function handler(req, res) {
             }
             console.log("✅ Administrateur créé:", adminEmail);
         }
-        // Créer des catégories par défaut
         const defaultCategories = [
             { name: "Entrées", description: "Plats d'entrée" },
             { name: "Plats principaux", description: "Plats de résistance" },

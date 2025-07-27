@@ -121,7 +121,7 @@ export default function ModernHeader({
             </div>
           </Link>
 
-          {/* Search Bar - Desktop */}
+          
           <div className="hidden md:flex flex-1 max-w-2xl mx-8">
             <form onSubmit={handleSearch} className="relative w-full">
               <div className="relative">

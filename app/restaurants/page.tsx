@@ -63,7 +63,7 @@ type Restaurant = {
 
 export default function RestaurantsPage() {
   const searchParams = useSearchParams()!
-  // Récupérer cuisine dans URL, sinon "Tous"
+  
   const cuisineFromUrl = searchParams.get("cuisine") || "Tous"
 
   const [searchTerm, setSearchTerm] = useState("")
@@ -99,7 +99,7 @@ export default function RestaurantsPage() {
         const params = new URLSearchParams()
 
         if (searchTerm.trim()) params.append("search", searchTerm.trim())
-        // N'envoyer cuisine que si différente de "Tous"
+       
         if (selectedCuisine && selectedCuisine !== "Tous") {
           params.append("cuisine", selectedCuisine)
         }
@@ -125,7 +125,6 @@ export default function RestaurantsPage() {
     minRating,
   ])
 
-  // Si l’url change et que le param cuisine change, mettre à jour selectedCuisine
   useEffect(() => {
     if (cuisineFromUrl !== selectedCuisine) {
       setSelectedCuisine(cuisineFromUrl)
@@ -145,7 +144,7 @@ export default function RestaurantsPage() {
     setMinRating([0])
   }
 
-  // Filtrage frontend additionnel (ex : distance ou autres non gérés backend)
+  // Filtrage frontend additionnel 
   const filteredRestaurants = restaurants
     .filter((restaurant) => {
       const matchesSearch =
@@ -159,7 +158,6 @@ export default function RestaurantsPage() {
         selectedCuisine === "Tous" ||
         restaurant.cuisine.some((c) => c.name === selectedCuisine)
 
-      // Ici, location, priceRange, maxDistance non gérés dans ton backend, tu peux retirer ou gérer côté frontend
 
       const matchesOpenStatus = !showOpenOnly || restaurant.isOpen
       const matchesPromotions =
@@ -230,6 +228,7 @@ export default function RestaurantsPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex flex-col lg:flex-row gap-8">
+
           {/* Sidebar Filters */}
           <div className="hidden lg:block w-80 space-y-6">
             <Card>
@@ -259,7 +258,7 @@ export default function RestaurantsPage() {
                   </Select>
                 </div>
 
-                {/* Checkboxes */}
+               
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2">
                     <Checkbox
@@ -283,7 +282,7 @@ export default function RestaurantsPage() {
                   </div>
                 </div>
 
-                {/* Min Rating Filter */}
+                
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Note minimale: {minRating[0]} étoiles</Label>
                   <Slider
@@ -299,9 +298,9 @@ export default function RestaurantsPage() {
             </Card>
           </div>
 
-          {/* Main Content */}
+         
           <div className="flex-1">
-            {/* Mobile Filters & Sort */}
+           
             <div className="flex items-center justify-between mb-6 lg:hidden">
               <Sheet>
                 <SheetTrigger asChild>
@@ -333,7 +332,7 @@ export default function RestaurantsPage() {
                       </Select>
                     </div>
 
-                    {/* Checkboxes Mobile */}
+                   
                     <div className="space-y-3">
                       <div className="flex items-center space-x-2">
                         <Checkbox
@@ -357,7 +356,7 @@ export default function RestaurantsPage() {
                       </div>
                     </div>
 
-                    {/* Min Rating Filter Mobile */}
+                   
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Note minimale: {minRating[0]} étoiles</Label>
                       <Slider
@@ -383,12 +382,12 @@ export default function RestaurantsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="rating">Note</SelectItem>
-                  {/* Tu peux ajouter d'autres critères si tu les gères */}
+                  
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Restaurants Grid */}
+            
             {filteredRestaurants.length === 0 ? (
               <Card>
                 <CardContent className="text-center py-12">

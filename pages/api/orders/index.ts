@@ -7,7 +7,6 @@ import { sessionOptions, type SessionData } from "@/lib/session";
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getIronSession<SessionData>(req, res, sessionOptions);
 
-  // On vérifie la session client
   if (!session.isLoggedIn || !session.customerId) {
     return res.status(401).json({ message: "Non authentifié" });
   }
@@ -15,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === "GET") {
     try {
       const orders = await prisma.orders.findMany({
-        where: { customerId: session.customerId }, // Corrected: session.customerId
+        where: { customerId: session.customerId }, 
         include: {
           users: {
             select: {
@@ -85,14 +84,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const restaurantId = restaurantIds[0];
 
-      // Générer un numéro de commande unique
+     
       const orderNumber = `CMD-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Date.now().toString().slice(-6)}`;
 
       // Créer la commande
       const order = await prisma.orders.create({
         data: {
           orderNumber,
-          customerId: session.customerId, // Corrected
+          customerId: session.customerId, 
           userId: restaurantId,
           totalAmount,
           deliveryAddress,

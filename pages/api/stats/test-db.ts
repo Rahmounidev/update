@@ -9,7 +9,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     console.log("🔍 Test de connexion à la base de données...")
 
-    // Test de connexion
+   
     const isConnected = await testConnection()
 
     if (!isConnected) {
@@ -20,7 +20,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
     }
 
-    // Test de requête simple
     const customerCount = await prisma.customers.count()
     const userCount = await prisma.users.count()
     const categoryCount = await prisma.categories.count()
