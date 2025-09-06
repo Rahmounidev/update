@@ -34,8 +34,13 @@ type Order = {
   totalAmount: number
   deliveryAddress: string
   createdAt: string
-  users: { restaurantName: string; name: string; logo?: string }
-  order_items: OrderItem[]
+  users: {
+    restaurantName: string;
+    name: string;
+    logo?: string;
+    phone?: string;
+  };
+    order_items: OrderItem[]
   review?: { rating: number; comment?: string } | null 
 }
 
@@ -252,14 +257,37 @@ export default function OrdersPage() {
                             <span>{order.deliveryAddress}</span>
                           </div>
                           <div className="flex space-x-2">
-                            <Button variant="outline" size="sm">
-                              <Phone className="h-4 w-4 mr-1" />
-                              Contacter le restaurant
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <MessageCircle className="h-4 w-4 mr-1" />
-                              Support
-                            </Button>
+                          <Button
+    variant="outline"
+    size="sm"
+    onClick={() => {
+      if (order.users.phone) {
+        window.location.href = `tel:${order.users.phone}`;
+      } else {
+        alert("Numéro de téléphone du restaurant non disponible");
+      }
+    }}
+  >
+    <Phone className="h-4 w-4 mr-1" />
+    Contacter le restaurant
+  </Button>
+
+  {/* Bouton pour contacter le support via WhatsApp */}
+  <Button
+    variant="outline"
+    size="sm"
+    onClick={() => {
+      if (order.users.phone) {
+        const text = encodeURIComponent("Bonjour, j'ai besoin d'aide avec ma commande");
+        window.open(`https://wa.me/${order.users.phone}?text=${text}`, "_blank");
+      } else {
+        alert("Numéro WhatsApp du support non disponible");
+      }
+    }}
+  >
+    <MessageCircle className="h-4 w-4 mr-1" />
+    Support
+  </Button>
                           </div>
                         </div>
                       </CardContent>

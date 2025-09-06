@@ -21,6 +21,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               restaurantName: true,
               name: true,
               logo: true,
+              phone: true, 
+
             },
           },
           order_items: {
@@ -116,6 +118,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             select: {
               restaurantName: true,
               name: true,
+              phone: true, 
+
             },
           },
         },
