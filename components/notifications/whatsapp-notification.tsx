@@ -37,11 +37,11 @@ export default function WhatsAppNotification({ orderId }: WhatsAppNotificationPr
     } catch (err) {
       console.error("❌ Erreur récupération commande:", err);
     }
-  };
+  }
 
   useEffect(() => {
     fetchOrderStatus(); 
-    const interval = setInterval(fetchOrderStatus, 10000); /
+    const interval = setInterval(fetchOrderStatus, 10000); 
     return () => clearInterval(interval);
   }, [orderId]);
 
