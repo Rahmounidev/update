@@ -333,7 +333,9 @@ export default function OrdersPage() {
                             </CardDescription>
                           </div>
                           <div className="text-right">
-                            <p className="text-lg font-bold">{order.totalAmount.toFixed(2)} DH</p>
+                          <p className="text-lg font-bold">
+  {(typeof order.totalAmount === "number" ? order.totalAmount : Number(order.totalAmount) || 0).toFixed(2)} DH
+</p>
                           </div>
                         </div>
                       </CardHeader>
@@ -345,8 +347,8 @@ export default function OrdersPage() {
                               {order.order_items.map((item, idx) => (
                                 <div key={idx} className="flex justify-between text-sm">
                                   <span>{item.quantity}x {item.dishes.name}</span>
-                                  <span>{item.price.toFixed(2)} DH</span>
-                                </div>
+                                  <span>{(typeof item.price === "number" ? item.price : Number(item.price) || 0).toFixed(2)} DH</span>
+                                  </div>
                               ))}
                             </div>
                           </div>
